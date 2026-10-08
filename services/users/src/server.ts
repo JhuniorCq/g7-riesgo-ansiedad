@@ -10,6 +10,8 @@ import { pool } from "./config/database.js";
 import { GetUsers } from "./application/useCases/GetUsers.js";
 import { LoginUser } from "./application/useCases/LoginUser.js";
 import { GetUserById } from "./application/useCases/GetUserById.js";
+import { JwtTokenServices } from "./infrastructure/services/JwtTokenService.js";
+import { createAuthMiddleware } from "./presentation/middlewares/authMiddleware.js";
 
 const app = express();
 
@@ -17,17 +19,23 @@ app.use(express.json());
 
 const userRepository = new MySqlUserRepository();
 const passwordHasher = new BcryptPasswordHasher();
+const tokenService = new JwtTokenServices();
+
 const getUsers = new GetUsers(userRepository);
 const getUserById = new GetUserById(userRepository);
 const createUser = new CreateUser(userRepository, passwordHasher);
-const loginUser = new LoginUser(userRepository, passwordHasher);
+const loginUser = new LoginUser(userRepository, passwordHasher, tokenService);
+
 const userController = new UserController(
   getUsers,
   getUserById,
   createUser,
   loginUser,
 );
-const userRouter = createUserRouter(userController);
+
+const authMiddleware = createAuthMiddleware(tokenService);
+
+const userRouter = createUserRouter(userController, authMiddleware);
 
 app.use("/users", userRouter);
 

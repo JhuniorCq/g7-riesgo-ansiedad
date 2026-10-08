@@ -40,6 +40,22 @@ export class UserController {
     res.status(200).json(toUserResponseDTO(user));
   }
 
+  async getMe(req: Request, res: Response): Promise<void> {
+    const userId = req.userId;
+
+    if (!userId) {
+      res.status(401).json({
+        message: "Usuario no autenticado",
+      });
+
+      return;
+    }
+
+    const user = await this.getUserById.execute(userId);
+
+    res.status(200).json(toUserResponseDTO(user));
+  }
+
   async create(req: Request, res: Response): Promise<void> {
     const input = createUserSchema.parse(req.body);
 
@@ -51,11 +67,12 @@ export class UserController {
   async login(req: Request, res: Response): Promise<void> {
     const input = loginUserSchema.parse(req.body);
 
-    const user = await this.loginUser.execute(input);
+    const { user, accessToken } = await this.loginUser.execute(input);
 
     res.status(200).json({
       message: "Inicio de sesión exitoso",
       user: toUserResponseDTO(user),
+      accessToken,
     });
   }
 }
