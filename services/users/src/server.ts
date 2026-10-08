@@ -6,6 +6,10 @@ import { CreateUser } from "./application/useCases/CreateUser.js";
 import { BcryptPasswordHasher } from "./infrastructure/services/BcryptPasswordHasher.js";
 import { UserController } from "./presentation/controllers/UserController.js";
 import { createUserRouter } from "./presentation/routes/userRoutes.js";
+import { pool } from "./config/database.js";
+import { GetUsers } from "./application/useCases/GetUsers.js";
+import { LoginUser } from "./application/useCases/LoginUser.js";
+import { GetUserById } from "./application/useCases/GetUserById.js";
 
 const app = express();
 
@@ -13,21 +17,42 @@ app.use(express.json());
 
 const userRepository = new MySqlUserRepository();
 const passwordHasher = new BcryptPasswordHasher();
+const getUsers = new GetUsers(userRepository);
+const getUserById = new GetUserById(userRepository);
 const createUser = new CreateUser(userRepository, passwordHasher);
-const userController = new UserController(createUser);
+const loginUser = new LoginUser(userRepository, passwordHasher);
+const userController = new UserController(
+  getUsers,
+  getUserById,
+  createUser,
+  loginUser,
+);
 const userRouter = createUserRouter(userController);
 
 app.use("/users", userRouter);
 
-app.get("/health", (_req, res) => {
-  res.json({
-    service: "users",
-    stastus: "OK",
-  });
+app.get("/health", async (_req, res) => {
+  try {
+    await pool.query("SELECT 1");
+
+    res.status(200).json({
+      service: "users",
+      status: "OK",
+      database: "OK",
+    });
+  } catch (error) {
+    console.error("ERROR MYSQL:", error);
+
+    res.status(503).json({
+      service: "users",
+      status: "ERROR",
+      database: "UNAVAILABLE",
+    });
+  }
 });
 
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`Books Service corriendo en el puerto ${PORT}`);
+  console.log(`Users service corriendo en el puerto ${PORT}`);
 });

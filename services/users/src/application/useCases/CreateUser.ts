@@ -9,6 +9,8 @@ export interface CreateUserInput {
   code: string;
   email: string;
   password: string;
+  school: string;
+  cycle: number;
 }
 
 export class CreateUser {
@@ -45,6 +47,8 @@ export class CreateUser {
       code: input.code,
       email: input.email,
       password: hashedPassword,
+      school: input.school,
+      cycle: input.cycle,
       createdAt: new Date(),
     });
 

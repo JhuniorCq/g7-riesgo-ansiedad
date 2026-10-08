@@ -6,6 +6,8 @@ export interface UserResponseDTO {
   surnames: string;
   code: string;
   email: string;
+  school: string;
+  cycle: number;
   createdAt: Date;
 }
 
@@ -16,6 +18,8 @@ export const toUserResponseDTO = (user: User): UserResponseDTO => {
     surnames: user.getSurnames(),
     code: user.getCode(),
     email: user.getEmail(),
+    school: user.getSchool(),
+    cycle: user.getCycle(),
     createdAt: user.getCreatedAt(),
   };
 };
