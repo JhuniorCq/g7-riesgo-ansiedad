@@ -5,7 +5,7 @@ Frontend React + TypeScript + Vite + Tailwind CSS + React Router + Lucide. Las p
 ## Ejecutar (PowerShell)
 
 ```powershell
-cd frontend
+cd web-demo/frontend
 npm.cmd install
 Copy-Item .env.example .env
 # Edita .env localmente y completa VITE_APIM_SUBSCRIPTION_KEY.
