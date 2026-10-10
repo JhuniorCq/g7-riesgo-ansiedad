@@ -33,19 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (success && mounted) {
-      // Navegar según el rol del usuario
-      final rol = authVM.rol;
-      switch (rol) {
-        case 'Admin':
-          Navigator.pushReplacementNamed(context, '/admin-home');
-          break;
-        case 'Medico':
-          Navigator.pushReplacementNamed(context, '/medico-home');
-          break;
-        default:
-          Navigator.pushReplacementNamed(context, '/home');
-          break;
-      }
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
     }
   }
 

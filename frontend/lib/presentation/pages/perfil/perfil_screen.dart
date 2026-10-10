@@ -25,11 +25,11 @@ class PerfilScreen extends StatelessWidget {
       body: Consumer<AuthViewModel>(
         builder: (context, authVM, _) {
           final usuario = authVM.usuario;
-          final rol = authVM.rol ?? 'Estudiante';
+          const rol = 'Sin rol asignado';
           final nombre = authVM.nombre ?? 'Usuario';
           final correo = authVM.correo ?? '';
-          final facultad = usuario?['facultad'] as String?;
-          final ciclo = usuario?['ciclo'];
+          final escuela = usuario?.escuela;
+          final ciclo = usuario?.ciclo;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24),
@@ -160,13 +160,13 @@ class PerfilScreen extends StatelessWidget {
 
                 const SizedBox(height: 12),
 
-                // Info cards - solo mostrar facultad/ciclo para Estudiantes
-                if (rol == 'Estudiante') ...[
+                // Datos académicos recibidos de Users.
+                if (usuario != null) ...[
                   _buildInfoCard(
                     colors: colors,
                     icon: AppIcons.student,
-                    label: 'Facultad',
-                    value: facultad ?? 'No especificada',
+                    label: 'Escuela',
+                    value: escuela!,
                   ),
                   if (ciclo != null) ...[
                     const SizedBox(height: 12),

@@ -20,24 +20,47 @@ class AuthRemoteDataSource {
     required String correo,
     required String contrasena,
   }) async {
-    final response = await _apiService.post(
-      AppConstants.login,
-      body: {'correo': correo, 'contrasena': contrasena},
-      withAuth: false,
-    );
-
-    final token = response['token'] as String?;
-    final usuarioJson = response['usuario'] as Map<String, dynamic>?;
-
-    if (token == null || usuarioJson == null) {
-      throw Exception('Respuesta inválida del servidor');
+    _apiService.setToken(null);
+    try {
+      final response = await _apiService.post(
+        AppConstants.login,
+        body: {'email': correo.trim(), 'password': contrasena},
+        withAuth: false,
+      );
+      final token = response['accessToken'];
+      final usuarioJson = response['user'];
+      if (token is! String ||
+          token.trim().isEmpty ||
+          usuarioJson is! Map<String, dynamic>) {
+        throw const FormatException('Contrato de login inválido');
+      }
+      final usuario = UsuarioModel.fromJson(usuarioJson);
+      // Publicar el token únicamente después de validar todo el usuario.
+      _apiService.setToken(token);
+      return (token: token, usuario: usuario);
+    } on ApiException catch (e) {
+      if (e.statusCode == 401) {
+        throw Exception('Correo o contraseña incorrectos.');
+      }
+      if (e.statusCode == 400) {
+        throw Exception('Verifica el correo y la contraseña ingresados.');
+      }
+      throw Exception('No se pudo iniciar sesión. Inténtalo de nuevo.');
+    } on TimeoutException {
+      throw Exception('El servidor tardó en responder. Inténtalo de nuevo.');
+    } on http.ClientException {
+      throw Exception(
+        'No se pudo conectar con el servidor de inicio de sesión.',
+      );
+    } on FormatException {
+      throw Exception(
+        'El servidor devolvió una respuesta de inicio de sesión inesperada.',
+      );
+    } on TypeError {
+      throw Exception(
+        'El servidor devolvió una respuesta de inicio de sesión inesperada.',
+      );
     }
-
-    // Propagar el token al ApiService para peticiones autenticadas futuras
-    _apiService.setToken(token);
-
-    final usuario = UsuarioModel.fromJson(usuarioJson);
-    return (token: token, usuario: usuario);
   }
 
   /// Registra un nuevo usuario en el microservicio Users (POST /users).
@@ -101,7 +124,8 @@ class AuthRemoteDataSource {
   /// Mensaje para errores HTTP 409: conserva el mensaje específico del
   /// backend (p. ej. "El email ya está registrado") si existe.
   String _mensajeDuplicado(ApiException e) {
-    final detalle = _mensajeUtil(e.mensaje) ?? _extraerErroresPorCampo(e.cuerpo);
+    final detalle =
+        _mensajeUtil(e.mensaje) ?? _extraerErroresPorCampo(e.cuerpo);
     if (detalle != null) return detalle;
     return 'El correo o el código de estudiante ya está registrado';
   }
@@ -125,18 +149,26 @@ class AuthRemoteDataSource {
       final dynamic errores =
           decoded['errors'] ?? decoded['errores'] ?? decoded['details'];
       if (errores is List) {
-        final mensajes = errores.map((dynamic e) {
-          if (e is Map<String, dynamic>) {
-            return (e['message'] ?? e['msg'] ?? e['detail'] ?? e['error'] ?? '')
-                .toString();
-          }
-          return e.toString();
-        }).where((m) => m.trim().isNotEmpty).toList();
+        final mensajes = errores
+            .map((dynamic e) {
+              if (e is Map<String, dynamic>) {
+                return (e['message'] ??
+                        e['msg'] ??
+                        e['detail'] ??
+                        e['error'] ??
+                        '')
+                    .toString();
+              }
+              return e.toString();
+            })
+            .where((m) => m.trim().isNotEmpty)
+            .toList();
         if (mensajes.isNotEmpty) return mensajes.join('; ');
       }
       if (errores is Map<String, dynamic>) {
-        final mensajes =
-            errores.entries.map((e) => '${e.key}: ${e.value}').toList();
+        final mensajes = errores.entries
+            .map((e) => '${e.key}: ${e.value}')
+            .toList();
         if (mensajes.isNotEmpty) return mensajes.join('; ');
       }
     } catch (_) {

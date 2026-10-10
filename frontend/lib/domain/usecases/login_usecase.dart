@@ -1,4 +1,5 @@
 import '../repositories/auth_repository.dart';
+import '../entities/usuario.dart';
 
 /// UseCase para autenticar un usuario.
 ///
@@ -12,7 +13,7 @@ class LoginUseCase {
   /// Ejecuta el caso de uso de login.
   ///
   /// Retorna una tupla con el token y el usuario si es exitoso.
-  Future<({String token, String nombre, String rol, int idUsuario})> call({
+  Future<({String token, Usuario usuario})> call({
     required String correo,
     required String contrasena,
   }) async {
@@ -20,11 +21,6 @@ class LoginUseCase {
       correo: correo,
       contrasena: contrasena,
     );
-    return (
-      token: result.token,
-      nombre: result.usuario.nombre,
-      rol: result.usuario.rol,
-      idUsuario: result.usuario.idUsuario,
-    );
+    return result;
   }
 }

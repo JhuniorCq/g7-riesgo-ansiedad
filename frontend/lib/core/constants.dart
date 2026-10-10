@@ -92,7 +92,15 @@ class AppConstants {
   // ENDPOINTS DE AUTENTICACIÓN
   // ==========================================
   static String get registro => '$_baseUrl/registro';
-  static String get login => '$_baseUrl/login';
+
+  /// Permite apuntar el login a Users sin cambiar la URL del registro existente.
+  static const String _usersLoginBaseUrl = String.fromEnvironment(
+    'USERS_BASE_URL',
+  );
+  static String get login {
+    final base = _usersLoginBaseUrl.isEmpty ? _baseUrl : _usersLoginBaseUrl;
+    return '${base.replaceAll(RegExp(r'/+$'), '')}/users/login';
+  }
 
   // ==========================================
   // ENDPOINT DE REGISTRO (MICROSERVICIO USERS)

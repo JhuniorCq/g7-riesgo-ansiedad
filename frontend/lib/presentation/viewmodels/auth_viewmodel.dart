@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../../../domain/entities/usuario.dart';
 import '../../../domain/usecases/login_usecase.dart';
 import '../../../domain/usecases/register_usecase.dart';
 import '../../../domain/usecases/logout_usecase.dart';
@@ -22,22 +23,25 @@ class AuthViewModel extends ChangeNotifier {
   String? _error;
   String? _token;
   bool _isAuthenticated = false;
-  Map<String, dynamic>? _usuario;
+  Usuario? _usuario;
 
   bool get isLoading => _isLoading;
   String? get error => _error;
   String? get token => _token;
   bool get isAuthenticated => _isAuthenticated;
-  Map<String, dynamic>? get usuario => _usuario;
-  String? get rol => _usuario?['rol'] as String?;
-  String? get nombre => _usuario?['nombre'] as String?;
-  String? get correo => _usuario?['correo'] as String?;
-  int? get idUsuario => _usuario?['id_usuario'] as int?;
+  Usuario? get usuario => _usuario;
+  String? get nombre => _usuario?.nombre;
+  String? get correo => _usuario?.correo;
+  int? get idUsuario => _usuario?.idUsuario;
 
   // ==========================================
   // LOGIN
   // ==========================================
   Future<bool> login(String correo, String contrasena) async {
+    if (_isLoading) return false;
+    _token = null;
+    _usuario = null;
+    _isAuthenticated = false;
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -49,30 +53,20 @@ class AuthViewModel extends ChangeNotifier {
       );
 
       _token = result.token;
-      _usuario = {
-        'id_usuario': result.idUsuario,
-        'nombre': result.nombre,
-        'correo': correo,
-        'rol': result.rol,
-      };
-      if (_token != null) {
-        _isAuthenticated = true;
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      }
-
-      _error = 'No se recibió token de autenticación';
-      _isLoading = false;
-      notifyListeners();
-      return false;
+      _usuario = result.usuario;
+      _isAuthenticated = true;
+      return true;
     } catch (e) {
-      _error = e.toString().contains('Exception')
-          ? e.toString()
-          : 'Error de conexión con el servidor';
+      _token = null;
+      _usuario = null;
+      _isAuthenticated = false;
+      _error = e is Exception
+          ? e.toString().replaceFirst(RegExp(r'^Exception: '), '')
+          : 'No se pudo iniciar sesión. Inténtalo de nuevo.';
+      return false;
+    } finally {
       _isLoading = false;
       notifyListeners();
-      return false;
     }
   }
 
