@@ -30,11 +30,13 @@ class _AuthRepositoryPrueba implements AuthRepository {
 
   @override
   Future<void> registrar({
-    required String nombre,
+    required String nombres,
+    required String apellidos,
+    required String codigo,
     required String correo,
     required String contrasena,
-    String? facultad,
-    int? ciclo,
+    required String escuela,
+    required int ciclo,
   }) async {
     registroLlamado = true;
   }

@@ -25,17 +25,21 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> registrar({
-    required String nombre,
+    required String nombres,
+    required String apellidos,
+    required String codigo,
     required String correo,
     required String contrasena,
-    String? facultad,
-    int? ciclo,
+    required String escuela,
+    required int ciclo,
   }) async {
     return _remoteDataSource.registrar(
-      nombre: nombre,
+      nombres: nombres,
+      apellidos: apellidos,
+      codigo: codigo,
       correo: correo,
       contrasena: contrasena,
-      facultad: facultad,
+      escuela: escuela,
       ciclo: ciclo,
     );
   }

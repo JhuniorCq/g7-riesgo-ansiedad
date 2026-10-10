@@ -80,11 +80,13 @@ class AuthViewModel extends ChangeNotifier {
   // REGISTRO
   // ==========================================
   Future<bool> registrar({
-    required String nombre,
+    required String nombres,
+    required String apellidos,
+    required String codigo,
     required String correo,
     required String contrasena,
-    String? facultad,
-    int? ciclo,
+    required String escuela,
+    required int ciclo,
   }) async {
     _isLoading = true;
     _error = null;
@@ -92,10 +94,12 @@ class AuthViewModel extends ChangeNotifier {
 
     try {
       await _registerUseCase(
-        nombre: nombre,
+        nombres: nombres,
+        apellidos: apellidos,
+        codigo: codigo,
         correo: correo,
         contrasena: contrasena,
-        facultad: facultad,
+        escuela: escuela,
         ciclo: ciclo,
       );
 

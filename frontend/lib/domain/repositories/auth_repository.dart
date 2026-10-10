@@ -12,13 +12,19 @@ abstract class AuthRepository {
     required String contrasena,
   });
 
-  /// Registra un nuevo usuario en el sistema.
+  /// Registra un nuevo usuario en el microservicio Users (POST /users).
+  ///
+  /// Contrato de los 7 campos, todos obligatorios:
+  /// `names`, `surnames`, `code` (String), `email`, `password`,
+  /// `school` (solo el nombre de la escuela) y `cycle` (entero 1-12).
   Future<void> registrar({
-    required String nombre,
+    required String nombres,
+    required String apellidos,
+    required String codigo,
     required String correo,
     required String contrasena,
-    String? facultad,
-    int? ciclo,
+    required String escuela,
+    required int ciclo,
   });
 
   /// Cierra la sesión del usuario actual.

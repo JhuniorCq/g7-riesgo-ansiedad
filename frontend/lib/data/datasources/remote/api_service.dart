@@ -95,6 +95,7 @@ class ApiService {
     throw ApiException(
       statusCode: response.statusCode,
       mensaje: _extraerMensaje(response.body),
+      cuerpo: response.body,
     );
   }
 
@@ -117,8 +118,14 @@ class ApiService {
 class ApiException implements Exception {
   final int statusCode;
   final String mensaje;
+  /// Cuerpo crudo de la respuesta HTTP (opcional, para errores).
+  final String? cuerpo;
 
-  ApiException({required this.statusCode, required this.mensaje});
+  ApiException({
+    required this.statusCode,
+    required this.mensaje,
+    this.cuerpo,
+  });
 
   @override
   String toString() => 'ApiException($statusCode): $mensaje';

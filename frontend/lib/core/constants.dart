@@ -95,6 +95,14 @@ class AppConstants {
   static String get login => '$_baseUrl/login';
 
   // ==========================================
+  // ENDPOINT DE REGISTRO (MICROSERVICIO USERS)
+  // ==========================================
+  /// Registro de usuarios en el microservicio Users (POST /users).
+  /// La URL base nunca termina en barra (ver [setBaseUrl]), por lo que
+  /// el prefijo /users no se duplica.
+  static String get registroUsers => '$_baseUrl/users';
+
+  // ==========================================
   // ENDPOINTS DE EVALUACIONES
   // ==========================================
   static String get evaluar => '$_baseUrl/api/v1/evaluaciones/';
