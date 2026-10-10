@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../presentation/viewmodels/auth_viewmodel.dart';
+import '../../../domain/entities/escuela.dart';
+import '../../../presentation/viewmodels/escuela_viewmodel.dart';
 
 class RegistroScreen extends StatefulWidget {
   const RegistroScreen({super.key});
@@ -11,45 +12,83 @@ class RegistroScreen extends StatefulWidget {
 
 class _RegistroScreenState extends State<RegistroScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nombreController = TextEditingController();
+  final _nombresController = TextEditingController();
+  final _apellidosController = TextEditingController();
+  final _codigoController = TextEditingController();
   final _correoController = TextEditingController();
   final _contrasenaController = TextEditingController();
   final _confirmarController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
-  String? _facultad;
+  Escuela? _escuelaSeleccionada;
   int _ciclo = 1; // Ciclo seleccionado por defecto
+
+  /// Decoración del selector de escuela profesional.
+  /// Conserva el mismo diseño visual del resto del formulario.
+  InputDecoration get _escuelaDecoration => InputDecoration(
+        filled: true,
+        fillColor: Colors.white,
+        hintText: 'Escuela profesional',
+        hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+        prefixIcon: const Icon(
+          Icons.school_outlined,
+          color: Color(0xFF94A3B8),
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide(
+            color: Colors.grey.withValues(alpha: 0.2),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: const BorderSide(
+            color: Color(0xFF6366F1),
+            width: 1.5,
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 18,
+        ),
+      );
+
+  @override
+  void initState() {
+    super.initState();
+    // Inicialización segura: se carga el catálogo después del primer frame
+    // para no llamar a notifyListeners() durante la construcción de widgets.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<EscuelaViewModel>().cargarEscuelas();
+    });
+  }
 
   @override
   void dispose() {
-    _nombreController.dispose();
+    _nombresController.dispose();
+    _apellidosController.dispose();
+    _codigoController.dispose();
     _correoController.dispose();
     _contrasenaController.dispose();
     _confirmarController.dispose();
     super.dispose();
   }
 
+  /// Punto de entrada del registro (temporalmente sin envío).
+  ///
+  /// Se conserva para la futura integración con el microservicio Users.
+  /// Por ahora solo valida el formulario: no realiza peticiones HTTP ni
+  /// muestra un registro exitoso.
+  // ignore: unused_element
   Future<void> _handleRegistro() async {
     if (!_formKey.currentState!.validate()) return;
-
-    final authVM = context.read<AuthViewModel>();
-    final success = await authVM.registrar(
-      nombre: _nombreController.text.trim(),
-      correo: _correoController.text.trim(),
-      contrasena: _contrasenaController.text,
-      facultad: _facultad,
-      ciclo: _ciclo,
-    );
-
-    if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('¡Cuenta creada con éxito! Por favor inicia sesión.'),
-          backgroundColor: Color(0xFF6366F1),
-        ),
-      );
-      Navigator.pop(context);
-    }
+    // TODO(Tarea Users): enviar nombres, apellidos, código de estudiante,
+    // correo, escuela profesional y ciclo al microservicio Users.
   }
 
   @override
@@ -76,6 +115,7 @@ class _RegistroScreenState extends State<RegistroScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Form(
                 key: _formKey,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -127,16 +167,16 @@ class _RegistroScreenState extends State<RegistroScreen> {
                     const SizedBox(height: 40),
 
                     // ==========================================
-                    // FULL NAME FIELD
+                    // NOMBRES FIELD
                     // ==========================================
                     TextFormField(
-                      controller: _nombreController,
+                      controller: _nombresController,
                       textCapitalization: TextCapitalization.words,
                       style: const TextStyle(color: Color(0xFF1E293B)),
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: Colors.white,
-                        hintText: 'Nombre completo',
+                        hintText: 'Nombres',
                         hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
                         prefixIcon: const Icon(
                           Icons.person_outline,
@@ -166,7 +206,101 @@ class _RegistroScreenState extends State<RegistroScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Por favor, ingresa tu nombre completo';
+                          return 'Por favor, ingresa tus nombres';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // ==========================================
+                    // APELLIDOS FIELD
+                    // ==========================================
+                    TextFormField(
+                      controller: _apellidosController,
+                      textCapitalization: TextCapitalization.words,
+                      style: const TextStyle(color: Color(0xFF1E293B)),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white,
+                        hintText: 'Apellidos',
+                        hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                        prefixIcon: const Icon(
+                          Icons.person_outline,
+                          color: Color(0xFF94A3B8),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide(
+                            color: Colors.grey.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF6366F1),
+                            width: 1.5,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 18,
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Por favor, ingresa tus apellidos';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // ==========================================
+                    // CÓDIGO DE ESTUDIANTE FIELD (texto, admite ceros)
+                    // ==========================================
+                    TextFormField(
+                      controller: _codigoController,
+                      keyboardType: TextInputType.text,
+                      style: const TextStyle(color: Color(0xFF1E293B)),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white,
+                        hintText: 'Código de estudiante',
+                        hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                        prefixIcon: const Icon(
+                          Icons.badge_outlined,
+                          color: Color(0xFF94A3B8),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide(
+                            color: Colors.grey.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF6366F1),
+                            width: 1.5,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 18,
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Por favor, ingresa tu código de estudiante';
                         }
                         return null;
                       },
@@ -215,7 +349,11 @@ class _RegistroScreenState extends State<RegistroScreen> {
                         if (value == null || value.trim().isEmpty) {
                           return 'Por favor, ingresa tu correo';
                         }
-                        if (!value.contains('@')) {
+                        final correo = value.trim();
+                        final regexCorreo = RegExp(
+                          r'^[\w.\-]+@([\w\-]+\.)+[\w\-]{2,}$',
+                        );
+                        if (!regexCorreo.hasMatch(correo)) {
                           return 'Ingresa un correo válido';
                         }
                         return null;
@@ -345,61 +483,105 @@ class _RegistroScreenState extends State<RegistroScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
+                    // ==========================================
+                    // ESCUELA PROFESIONAL FIELD (catálogo local)
+                    // ==========================================
+                    Consumer<EscuelaViewModel>(
+                      builder: (context, escuelaVM, _) {
+                        if (escuelaVM.cargando) {
+                          return InputDecorator(
+                            decoration: _escuelaDecoration,
+                            child: Row(
+                              children: [
+                                const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Color(0xFF6366F1),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Cargando catálogo de escuelas...',
+                                  style: TextStyle(color: Color(0xFF94A3B8)),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
 
-                    // ==========================================
-                    // FACULTAD FIELD (Dropdown)
-                    // ==========================================
-                    DropdownButtonFormField<String>(
-                      value: _facultad,
-                      dropdownColor: Colors.white,
-                      style: const TextStyle(color: Color(0xFF1E293B)),
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white,
-                        hintText: 'Facultad (opcional)',
-                        hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
-                        prefixIcon: const Icon(
-                          Icons.school_outlined,
-                          color: Color(0xFF94A3B8),
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide(
-                            color: Colors.grey.withValues(alpha: 0.2),
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF6366F1),
-                            width: 1.5,
-                          ),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 18,
-                        ),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: null, child: Text('No especificar')),
-                        DropdownMenuItem(value: 'Ingeniería', child: Text('Ingeniería')),
-                        DropdownMenuItem(value: 'Medicina', child: Text('Medicina')),
-                        DropdownMenuItem(value: 'Derecho', child: Text('Derecho')),
-                        DropdownMenuItem(value: 'Economía', child: Text('Economía')),
-                        DropdownMenuItem(value: 'Psicología', child: Text('Psicología')),
-                        DropdownMenuItem(value: 'Educación', child: Text('Educación')),
-                        DropdownMenuItem(value: 'Artes', child: Text('Artes')),
-                        DropdownMenuItem(value: 'Ciencias', child: Text('Ciencias')),
-                        DropdownMenuItem(value: 'Humanidades', child: Text('Humanidades')),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _facultad = value;
-                        });
+                        if (escuelaVM.error != null) {
+                          return InputDecorator(
+                            decoration: _escuelaDecoration,
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.error_outline,
+                                  color: Colors.red,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                const Expanded(
+                                  child: Text(
+                                    'No se pudo cargar el catálogo de escuelas',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: escuelaVM.cargarEscuelas,
+                                  child: const Text('Reintentar'),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        // Si un mismo nombre de escuela aparece en más de
+                        // una facultad, se muestra la facultad para poder
+                        // diferenciarlas en el menú.
+                        final nombresVistos = <String>{};
+                        final nombresRepetidos = <String>{};
+                        for (final escuela in escuelaVM.escuelas) {
+                          if (!nombresVistos.add(escuela.nombre)) {
+                            nombresRepetidos.add(escuela.nombre);
+                          }
+                        }
+
+                        return DropdownButtonFormField<Escuela>(
+                          initialValue: _escuelaSeleccionada,
+                          isExpanded: true,
+                          dropdownColor: Colors.white,
+                          style: const TextStyle(color: Color(0xFF1E293B)),
+                          decoration: _escuelaDecoration,
+                          items: escuelaVM.escuelas.map((escuela) {
+                            final etiqueta = nombresRepetidos
+                                    .contains(escuela.nombre)
+                                ? '${escuela.nombre} — ${escuela.facultad}'
+                                : escuela.nombre;
+                            return DropdownMenuItem<Escuela>(
+                              value: escuela,
+                              child: Text(
+                                etiqueta,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          }).toList(),
+                          validator: (value) {
+                            if (value == null) {
+                              return 'Selecciona tu escuela profesional';
+                            }
+                            return null;
+                          },
+                          onChanged: (value) {
+                            setState(() {
+                              _escuelaSeleccionada = value;
+                            });
+                          },
+                        );
                       },
                     ),
                     const SizedBox(height: 16),
@@ -408,7 +590,7 @@ class _RegistroScreenState extends State<RegistroScreen> {
                     // CICLO FIELD
                     // ==========================================
                     DropdownButtonFormField<int>(
-                      value: _ciclo,
+                      initialValue: _ciclo,
                       dropdownColor: Colors.white,
                       style: const TextStyle(color: Color(0xFF1E293B)),
                       decoration: InputDecoration(
@@ -449,6 +631,12 @@ class _RegistroScreenState extends State<RegistroScreen> {
                           child: Text('Ciclo $c'),
                         );
                       }),
+                      validator: (value) {
+                        if (value == null || value < 1 || value > 12) {
+                          return 'Selecciona un ciclo académico (1-12)';
+                        }
+                        return null;
+                      },
                       onChanged: (value) {
                         setState(() {
                           if (value != null) _ciclo = value;
@@ -458,55 +646,45 @@ class _RegistroScreenState extends State<RegistroScreen> {
                     const SizedBox(height: 24),
 
                     // ==========================================
-                    // CREATE ACCOUNT BUTTON
+                    // CREATE ACCOUNT BUTTON (deshabilitado temporalmente)
                     // ==========================================
-                    Consumer<AuthViewModel>(
-                      builder: (context, authVM, _) {
-                        if (authVM.error != null) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(authVM.error!),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            authVM.clearError();
-                          });
-                        }
-
-                        return SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: ElevatedButton(
-                            onPressed: authVM.isLoading ? null : _handleRegistro,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF6366F1),
-                              foregroundColor: Colors.white,
-                              elevation: 8,
-                              shadowColor: const Color(0xFF6366F1).withValues(alpha: 0.4),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                            ),
-                            child: authVM.isLoading
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Text(
-                                    'Crear Cuenta',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: ElevatedButton(
+                        // Temporalmente deshabilitado: la conexión con el
+                        // microservicio Users se habilitará en la siguiente
+                        // tarea. El envío se hará mediante _handleRegistro.
+                        onPressed: null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6366F1),
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: const Color(0xFF6366F1),
+                          disabledForegroundColor: Colors.white70,
+                          elevation: 8,
+                          shadowColor:
+                              const Color(0xFF6366F1).withValues(alpha: 0.4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
                           ),
-                        );
-                      },
+                        ),
+                        child: const Text(
+                          'Crear Cuenta',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Registro temporalmente deshabilitado: la conexión con el microservicio Users está pendiente.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 12,
+                      ),
                     ),
                     const SizedBox(height: 32),
 

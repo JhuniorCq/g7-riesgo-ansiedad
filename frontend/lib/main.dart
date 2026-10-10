@@ -13,6 +13,8 @@ import 'data/repositories/medico_repository_impl.dart';
 import 'data/datasources/remote/auth_remote_datasource.dart';
 import 'data/datasources/remote/evaluacion_remote_datasource.dart';
 import 'data/datasources/remote/medico_remote_datasource.dart';
+import 'data/datasources/local/escuela_local_datasource.dart';
+import 'data/repositories/escuela_repository_impl.dart';
 
 // Domain UseCases
 import 'domain/usecases/login_usecase.dart';
@@ -23,12 +25,14 @@ import 'domain/usecases/obtener_historial_usecase.dart';
 import 'domain/usecases/obtener_estadisticas_medico_usecase.dart';
 import 'domain/usecases/obtener_pacientes_usecase.dart';
 import 'domain/usecases/obtener_evaluaciones_recientes_usecase.dart';
+import 'domain/usecases/obtener_escuelas_usecase.dart';
 
 // Presentation
 import 'presentation/viewmodels/auth_viewmodel.dart';
 import 'presentation/viewmodels/evaluacion_viewmodel.dart';
 import 'presentation/viewmodels/medico_viewmodel.dart';
 import 'presentation/viewmodels/theme_viewmodel.dart';
+import 'presentation/viewmodels/escuela_viewmodel.dart';
 import 'presentation/pages/onboarding/onboarding_screen.dart';
 import 'presentation/pages/auth/login_screen.dart';
 import 'presentation/pages/home/home_screen.dart';
@@ -60,6 +64,7 @@ class AnsiedadApp extends StatelessWidget {
     final authRemoteDataSource = AuthRemoteDataSource(apiService);
     final evaluacionRemoteDataSource = EvaluacionRemoteDataSource(apiService);
     final medicoRemoteDataSource = MedicoRemoteDataSource(apiService);
+    final escuelaLocalDataSource = EscuelaLocalDataSource();
 
     // Repository Layer
     final authRepository = AuthRepositoryImpl(authRemoteDataSource);
@@ -67,6 +72,7 @@ class AnsiedadApp extends StatelessWidget {
       evaluacionRemoteDataSource,
     );
     final medicoRepository = MedicoRepositoryImpl(medicoRemoteDataSource);
+    final escuelaRepository = EscuelaRepositoryImpl(escuelaLocalDataSource);
 
     // UseCase Layer
     final loginUseCase = LoginUseCase(authRepository);
@@ -82,6 +88,7 @@ class AnsiedadApp extends StatelessWidget {
     final obtenerPacientesUseCase = ObtenerPacientesUseCase(medicoRepository);
     final obtenerEvaluacionesRecientesUseCase =
         ObtenerEvaluacionesRecientesUseCase(medicoRepository);
+    final obtenerEscuelasUseCase = ObtenerEscuelasUseCase(escuelaRepository);
 
     return MultiProvider(
       providers: [
@@ -102,6 +109,9 @@ class AnsiedadApp extends StatelessWidget {
             obtenerPacientesUseCase,
             obtenerEvaluacionesRecientesUseCase,
           ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => EscuelaViewModel(obtenerEscuelasUseCase),
         ),
       ],
       child: Consumer<ThemeNotifier>(
