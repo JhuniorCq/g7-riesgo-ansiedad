@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -15,10 +17,23 @@ import 'package:ansiedad_ml_app/presentation/pages/auth/registro_screen.dart';
 import 'package:ansiedad_ml_app/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:ansiedad_ml_app/presentation/viewmodels/escuela_viewmodel.dart';
 
-/// Repositorio de autenticación falso para la prueba de widget:
-/// evita cualquier llamada HTTP y marca si se intentó registrar.
+/// Repositorio de autenticación falso: no realiza HTTP, contabiliza las
+/// llamadas de registro, guarda los parámetros enviados y permite simular
+/// errores y envíos lentos.
 class _AuthRepositoryPrueba implements AuthRepository {
   bool registroLlamado = false;
+  int registroLlamas = 0;
+  ({
+    String nombres,
+    String apellidos,
+    String codigo,
+    String correo,
+    String contrasena,
+    String escuela,
+    int ciclo,
+  })? ultimoRegistro;
+  Object? errorAInsertar;
+  Completer<void>? espera;
 
   @override
   Future<({String token, Usuario usuario})> login({
@@ -39,16 +54,32 @@ class _AuthRepositoryPrueba implements AuthRepository {
     required int ciclo,
   }) async {
     registroLlamado = true;
+    registroLlamas += 1;
+    ultimoRegistro = (
+      nombres: nombres,
+      apellidos: apellidos,
+      codigo: codigo,
+      correo: correo,
+      contrasena: contrasena,
+      escuela: escuela,
+      ciclo: ciclo,
+    );
+    final esperaRegistro = espera;
+    if (esperaRegistro != null) {
+      await esperaRegistro.future;
+    }
+    final error = errorAInsertar;
+    if (error != null) throw error;
   }
 
   @override
-  Future<void> logout() async {
+  Future<void> logout() {
     throw UnimplementedError();
   }
 }
 
-/// Monta la pantalla de registro con el catálogo real (asset local) y un
-/// repositorio de autenticación falso, y espera a que la UI quede estable.
+/// Monta la pantalla de registro con el catálogo real (asset local), el
+/// repositorio falso y la ruta /login, y espera a que la UI quede estable.
 Future<_AuthRepositoryPrueba> _pumpRegistro(WidgetTester tester) async {
   final authRepository = _AuthRepositoryPrueba();
 
@@ -57,9 +88,7 @@ Future<_AuthRepositoryPrueba> _pumpRegistro(WidgetTester tester) async {
   );
   // La carga del asset se realiza en contexto asíncrono real con runAsync:
   // dentro de testWidgets, flutter test solo entrega la primera lectura de
-  // rootBundle por proceso de prueba. Con el catálogo precargado, la
-  // inicialización segura (post-frame) de la pantalla detecta los datos y
-  // no vuelve a cargar.
+  // rootBundle por proceso de prueba.
   await tester.runAsync(() => escuelaViewModel.cargarEscuelas());
 
   await tester.pumpWidget(
@@ -76,7 +105,12 @@ Future<_AuthRepositoryPrueba> _pumpRegistro(WidgetTester tester) async {
           ),
         ),
       ],
-      child: const MaterialApp(home: Scaffold(body: RegistroScreen())),
+      child: MaterialApp(
+        home: const Scaffold(body: RegistroScreen()),
+        routes: {
+          '/login': (_) => const Scaffold(body: Text('Pantalla de Login')),
+        },
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -88,6 +122,45 @@ Future<void> _validarFormulario(WidgetTester tester) async {
   final form = tester.state<FormState>(find.byType(Form));
   form.validate();
   await tester.pump();
+}
+
+/// Llena los seis campos de texto con datos válidos.
+Future<void> _llenarFormulario(WidgetTester tester) async {
+  final campos = find.byType(TextFormField);
+  await tester.ensureVisible(campos.at(0));
+  await tester.enterText(campos.at(0), 'Ana');
+  await tester.enterText(campos.at(1), 'Torres Vargas');
+  await tester.enterText(campos.at(2), '0012345');
+  await tester.enterText(campos.at(3), 'ana@correo.com');
+  await tester.enterText(campos.at(4), 'clave123456');
+  await tester.enterText(campos.at(5), 'clave123456');
+  await tester.pump();
+}
+
+/// Selecciona una escuela en el dropdown del catálogo.
+Future<void> _seleccionarEscuela(WidgetTester tester, String nombre) async {
+  final dropdown = find.byType(DropdownButtonFormField<Escuela>);
+  await tester.ensureVisible(dropdown);
+  await tester.tap(dropdown);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(nombre).last);
+  await tester.pumpAndSettle();
+}
+
+/// Selecciona un ciclo en su dropdown.
+Future<void> _seleccionarCiclo(WidgetTester tester, String ciclo) async {
+  final dropdown = find.byType(DropdownButtonFormField<int>);
+  await tester.ensureVisible(dropdown);
+  await tester.tap(dropdown);
+  await tester.pumpAndSettle();
+  final opcion = find.text(ciclo);
+  await tester.scrollUntilVisible(
+    opcion,
+    200,
+    scrollable: find.byType(Scrollable).last,
+  );
+  await tester.tap(opcion.last);
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -185,24 +258,193 @@ void main() {
 
       expect(find.text('Las contraseñas no coinciden'), findsOneWidget);
     });
+  });
 
-    testWidgets(
-      'el botón de registro está deshabilitado y no invoca el registro antiguo',
-      (tester) async {
-        final authRepository = await _pumpRegistro(tester);
+  group('Conexión del registro con Users', () {
+    testWidgets('envía los siete campos correctos al registrarse', (
+      tester,
+    ) async {
+      final authRepository = await _pumpRegistro(tester);
+      await _llenarFormulario(tester);
+      await _seleccionarEscuela(tester, 'Administración');
+      await _seleccionarCiclo(tester, 'Ciclo 3');
 
-        final botonFinder = find.widgetWithText(ElevatedButton, 'Crear Cuenta');
-        final boton = tester.widget<ElevatedButton>(botonFinder);
-        expect(boton.onPressed, isNull);
+      final boton = find.widgetWithText(ElevatedButton, 'Crear Cuenta');
+      await tester.ensureVisible(boton);
+      await tester.tap(boton);
+      await tester.pumpAndSettle();
 
-        await tester.ensureVisible(botonFinder);
-        await tester.tap(botonFinder);
-        await tester.pumpAndSettle();
+      expect(authRepository.registroLlamas, 1);
+      final registro = authRepository.ultimoRegistro;
+      expect(
+        registro,
+        (
+          nombres: 'Ana',
+          apellidos: 'Torres Vargas',
+          codigo: '0012345',
+          correo: 'ana@correo.com',
+          contrasena: 'clave123456',
+          escuela: 'Administración',
+          ciclo: 3,
+        ),
+      );
+      // Escuela viaja únicamente como nombre (sin facultad ni área).
+      expect(registro!.escuela, isNot(contains('Facultad')));
+      // Código como texto y ciclo como entero.
+      expect(registro.codigo, isA<String>());
+      expect(registro.ciclo, isA<int>());
+      // La confirmación de contraseña no forma parte de la tupla enviada.
+      expect(registro.toString(), isNot(contains('confirmation')));
 
-        expect(authRepository.registroLlamado, isFalse);
-        expect(find.textContaining('microservicio Users'), findsOneWidget);
-      },
-    );
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('el registro exitoso muestra mensaje y navega a login', (
+      tester,
+    ) async {
+      final authRepository = await _pumpRegistro(tester);
+      await _llenarFormulario(tester);
+      await _seleccionarEscuela(tester, 'Administración');
+
+      final boton = find.widgetWithText(ElevatedButton, 'Crear Cuenta');
+      await tester.ensureVisible(boton);
+      await tester.tap(boton);
+      await tester.pumpAndSettle();
+
+      expect(authRepository.registroLlamado, isTrue);
+      expect(find.byType(RegistroScreen), findsNothing);
+      expect(find.text('Pantalla de Login'), findsOneWidget);
+      expect(
+        find.text('¡Cuenta creada con éxito! Inicia sesión para continuar.'),
+        findsWidgets,
+      );
+
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('un registro válido llama una sola vez al repositorio', (
+      tester,
+    ) async {
+      final authRepository = await _pumpRegistro(tester);
+      authRepository.espera = Completer<void>();
+      await _llenarFormulario(tester);
+      await _seleccionarEscuela(tester, 'Administración');
+
+      final boton = find.widgetWithText(ElevatedButton, 'Crear Cuenta');
+      await tester.ensureVisible(boton);
+      await tester.tap(boton);
+      await tester.pump();
+      // Segundo toque durante el envío: el botón ya está deshabilitado.
+      await tester.tap(find.byType(ElevatedButton));
+      await tester.pump();
+
+      authRepository.espera!.complete();
+      await tester.pumpAndSettle();
+
+      expect(authRepository.registroLlamas, 1);
+      expect(find.text('Pantalla de Login'), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('un formulario inválido no llama al repositorio', (
+      tester,
+    ) async {
+      final authRepository = await _pumpRegistro(tester);
+
+      final boton = find.widgetWithText(ElevatedButton, 'Crear Cuenta');
+      await tester.ensureVisible(boton);
+      await tester.tap(boton);
+      await tester.pumpAndSettle();
+
+      expect(authRepository.registroLlamas, 0);
+      expect(find.byType(RegistroScreen), findsOneWidget);
+      expect(find.text('Pantalla de Login'), findsNothing);
+      expect(find.text('Por favor, ingresa tus nombres'), findsOneWidget);
+    });
+
+    testWidgets('un error 400 muestra el detalle sin navegar ni prefijos', (
+      tester,
+    ) async {
+      final authRepository = await _pumpRegistro(tester);
+      authRepository.errorAInsertar =
+          Exception('Datos de registro inválidos: Email inválido');
+      await _llenarFormulario(tester);
+      await _seleccionarEscuela(tester, 'Administración');
+
+      final boton = find.widgetWithText(ElevatedButton, 'Crear Cuenta');
+      await tester.ensureVisible(boton);
+      await tester.tap(boton);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Datos de registro inválidos: Email inválido'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Exception:'), findsNothing);
+      expect(find.byType(RegistroScreen), findsOneWidget);
+      expect(find.text('Pantalla de Login'), findsNothing);
+
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('un error 409 muestra el mensaje del backend sin navegar', (
+      tester,
+    ) async {
+      final authRepository = await _pumpRegistro(tester);
+      authRepository.errorAInsertar = Exception('El email ya está registrado');
+      await _llenarFormulario(tester);
+      await _seleccionarEscuela(tester, 'Administración');
+
+      final boton = find.widgetWithText(ElevatedButton, 'Crear Cuenta');
+      await tester.ensureVisible(boton);
+      await tester.tap(boton);
+      await tester.pumpAndSettle();
+
+      expect(find.text('El email ya está registrado'), findsOneWidget);
+      expect(find.textContaining('Exception:'), findsNothing);
+      expect(find.byType(RegistroScreen), findsOneWidget);
+      expect(find.text('Pantalla de Login'), findsNothing);
+
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('el botón se deshabilita durante el envío', (tester) async {
+      final authRepository = await _pumpRegistro(tester);
+      authRepository.espera = Completer<void>();
+      await _llenarFormulario(tester);
+      await _seleccionarEscuela(tester, 'Administración');
+
+      final boton = find.widgetWithText(ElevatedButton, 'Crear Cuenta');
+      await tester.ensureVisible(boton);
+      await tester.tap(boton);
+      await tester.pump();
+
+      expect(tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed, isNull);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      // Los datos del formulario se conservan durante el envío.
+      final editableNombre = tester.widget<EditableText>(
+        find.descendant(
+          of: find.byType(TextFormField).at(0),
+          matching: find.byType(EditableText),
+        ),
+      );
+      expect(editableNombre.controller.text, 'Ana');
+
+      authRepository.espera!.complete();
+      await tester.pumpAndSettle();
+
+      expect(authRepository.registroLlamas, 1);
+
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+    });
   });
 
   testWidgets('la escuela profesional es un campo obligatorio', (

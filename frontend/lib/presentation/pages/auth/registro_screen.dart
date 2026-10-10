@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../domain/entities/escuela.dart';
 import '../../../presentation/viewmodels/escuela_viewmodel.dart';
+import '../../../presentation/viewmodels/auth_viewmodel.dart';
 
 class RegistroScreen extends StatefulWidget {
   const RegistroScreen({super.key});
@@ -22,6 +23,7 @@ class _RegistroScreenState extends State<RegistroScreen> {
   bool _obscureConfirm = true;
   Escuela? _escuelaSeleccionada;
   int _ciclo = 1; // Ciclo seleccionado por defecto
+  bool _enviandoRegistro = false;
 
   /// Decoración del selector de escuela profesional.
   /// Conserva el mismo diseño visual del resto del formulario.
@@ -79,16 +81,73 @@ class _RegistroScreenState extends State<RegistroScreen> {
     super.dispose();
   }
 
-  /// Punto de entrada del registro (temporalmente sin envío).
+  /// Valida el formulario y registra al estudiante en el microservicio Users.
   ///
-  /// Se conserva para la futura integración con el microservicio Users.
-  /// Por ahora solo valida el formulario: no realiza peticiones HTTP ni
-  /// muestra un registro exitoso.
-  // ignore: unused_element
+  /// La llamada se realiza a través de [AuthViewModel.registrar] (sin HTTP
+  /// directo en el widget) y no envía la confirmación de contraseña.
   Future<void> _handleRegistro() async {
     if (!_formKey.currentState!.validate()) return;
-    // TODO(Tarea Users): enviar nombres, apellidos, código de estudiante,
-    // correo, escuela profesional y ciclo al microservicio Users.
+    if (_enviandoRegistro) return;
+
+    final escuela = _escuelaSeleccionada;
+    if (escuela == null) return;
+
+    setState(() => _enviandoRegistro = true);
+
+    final authVM = context.read<AuthViewModel>();
+    var registroExitoso = false;
+    try {
+      // AuthViewModel no lanza excepciones: devuelve true en éxito y false
+      // almacenando el detalle del backend en authVM.error.
+      registroExitoso = await authVM.registrar(
+        nombres: _nombresController.text.trim(),
+        apellidos: _apellidosController.text.trim(),
+        codigo: _codigoController.text.trim(),
+        correo: _correoController.text.trim(),
+        contrasena: _contrasenaController.text,
+        escuela: escuela.nombre,
+        ciclo: _ciclo,
+      );
+    } finally {
+      // El indicador de envío se apaga aunque ocurra un error inesperado.
+      if (mounted) {
+        setState(() => _enviandoRegistro = false);
+      }
+    }
+
+    if (!mounted) return;
+
+    if (registroExitoso) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            '¡Cuenta creada con éxito! Inicia sesión para continuar.',
+          ),
+          backgroundColor: Color(0xFF6366F1),
+        ),
+      );
+      Navigator.pushReplacementNamed(context, '/login');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_mensajeDeErrorRegistro(authVM.error)),
+          backgroundColor: Colors.red,
+        ),
+      );
+      authVM.clearError();
+    }
+  }
+
+  /// Mensaje legible en español para el error guardado en el ViewModel:
+  /// conserva el detalle del backend (400/409) sin prefijos técnicos.
+  String _mensajeDeErrorRegistro(String? error) {
+    final detalle = (error ?? '')
+        .replaceFirst(RegExp(r'^Exception:\s*'), '')
+        .trim();
+    if (detalle.isEmpty) {
+      return 'No se pudo completar el registro. Inténtalo de nuevo.';
+    }
+    return detalle;
   }
 
   @override
@@ -646,16 +705,13 @@ class _RegistroScreenState extends State<RegistroScreen> {
                     const SizedBox(height: 24),
 
                     // ==========================================
-                    // CREATE ACCOUNT BUTTON (deshabilitado temporalmente)
+                    // CREATE ACCOUNT BUTTON
                     // ==========================================
                     SizedBox(
                       width: double.infinity,
                       height: 54,
                       child: ElevatedButton(
-                        // Temporalmente deshabilitado: la conexión con el
-                        // microservicio Users se habilitará en la siguiente
-                        // tarea. El envío se hará mediante _handleRegistro.
-                        onPressed: null,
+                        onPressed: _enviandoRegistro ? null : _handleRegistro,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF6366F1),
                           foregroundColor: Colors.white,
@@ -668,22 +724,22 @@ class _RegistroScreenState extends State<RegistroScreen> {
                             borderRadius: BorderRadius.circular(30),
                           ),
                         ),
-                        child: const Text(
-                          'Crear Cuenta',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Registro temporalmente deshabilitado: la conexión con el microservicio Users está pendiente.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Color(0xFF94A3B8),
-                        fontSize: 12,
+                        child: _enviandoRegistro
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Crear Cuenta',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 32),
