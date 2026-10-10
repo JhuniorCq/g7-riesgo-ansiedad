@@ -42,3 +42,41 @@ describe('Integración HTTP con respuestas controladas', () => {
     await expect(api.predict({} as Parameters<typeof predict>[0])).rejects.toThrow('conectar');
   });
 });
+describe('Guardias de configuración, timeout y valores por defecto', () => {
+  const emptyRegistration = { names: '', surnames: '', code: '', email: '', password: '' };
+  it('rechaza baseUrl que no sea HTTPS de azure-api.net sin llamar a fetch', async () => {
+    for (const base of ['http://apim-riesgo-ansiedad.azure-api.net', 'https://otro-dominio.net']) {
+      vi.resetModules(); vi.stubEnv('VITE_APIM_BASE_URL', base);
+      const api = await import('./api');
+      await expect(api.registerStudent(emptyRegistration)).rejects.toThrow('no es válida');
+      expect(fetchMock).not.toHaveBeenCalled();
+    }
+  });
+  it('rechaza paths que no sean una ruta simple', async () => {
+    vi.resetModules(); vi.stubEnv('VITE_APIM_USERS_PATH', '//dominio-ajeno');
+    const api = await import('./api');
+    await expect(api.registerStudent(emptyRegistration)).rejects.toThrow('no es válida');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it('normaliza la barra final del baseUrl al construir la URL', async () => {
+    vi.resetModules(); vi.stubEnv('VITE_APIM_BASE_URL', 'https://apim-riesgo-ansiedad.azure-api.net/');
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ id: 1 }), { status: 201 }));
+    const api = await import('./api');
+    await api.registerStudent({ names: 'Prueba', surnames: 'Demo', code: 'TEST', email: 'test@example.com', password: 'test' });
+    expect(fetchMock.mock.calls[0][0]).toBe('https://apim-riesgo-ansiedad.azure-api.net/users/users');
+  });
+  it('envía AbortSignal al fetch y traduce la cancelación como timeout', async () => {
+    const { predict } = await import('./api');
+    const abort = new Error('aborted'); abort.name = 'AbortError';
+    fetchMock.mockRejectedValueOnce(abort);
+    await expect(predict({} as Parameters<typeof predict>[0])).rejects.toThrow('tardó demasiado');
+    expect(fetchMock.mock.calls[0][1].signal).toBeInstanceOf(AbortSignal);
+  });
+  it('usa los valores por defecto de config.ts cuando el entorno no define variables', async () => {
+    vi.resetModules();
+    vi.stubEnv('VITE_APIM_BASE_URL', ''); vi.stubEnv('VITE_APIM_SUBSCRIPTION_KEY', '');
+    vi.stubEnv('VITE_APIM_USERS_PATH', ''); vi.stubEnv('VITE_APIM_PREDICTION_PATH', '');
+    const { config } = await import('../config');
+    expect(config).toEqual({ baseUrl: 'https://apim-riesgo-ansiedad.azure-api.net', key: '', usersPath: '/users/users', predictionPath: '/prediction/predict' });
+  });
+});

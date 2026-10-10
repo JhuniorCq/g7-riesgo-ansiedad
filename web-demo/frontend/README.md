@@ -51,6 +51,7 @@ Con `.env` configurado: verificar en navegador CORS/preflight y encabezado de su
 - Instalación completada y auditoría npm sin vulnerabilidades tras actualizar Vitest.
 - `npm.cmd run build`: TypeScript y bundle de producción correctos.
 - `npm.cmd test`: 10 pruebas aprobadas (rangos, campos requeridos, confirmación, respuestas válidas/invalidas, rutas APIM, encabezado, payload, errores HTTP y conexión). Las llamadas POST se prueban con fetch controlado, no con Azure real.
-- Servidor Vite iniciado en `http://127.0.0.1:5173/`.
+- Servidor Vite iniciado en `http://localhost:5173/`. El script `dev` ya no fija `--host 127.0.0.1`: la política CORS de APIM solo admite el origen `http://localhost:5173` y el origen `http://127.0.0.1:5173` quedaba sin cabeceras `Access-Control-Allow-*` en el preflight.
+- Diagnóstico CORS del 9/10 de octubre de 2026: los preflights `OPTIONS` de `/users/users` y `/prediction/predict` responden `Access-Control-Allow-Origin: http://localhost:5173`, `Allow-Methods: POST` y `Allow-Headers: content-type,ocp-apim-subscription-key`; con otro origen responden 200 sin cabeceras CORS. Los health con clave responden 200 en ambos ámbitos.
 - La herramienta de navegador falló al iniciar en dos intentos. Quedan pendientes revisión visual, navegación interactiva, foco/accesibilidad y vista móvil en navegador real.
 - No se modificaron servicios, Docker, Azure ni modelos; no se hicieron commits ni push.
