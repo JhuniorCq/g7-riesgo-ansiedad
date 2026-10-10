@@ -1,27 +1,11 @@
-import jwt from "jsonwebtoken";
 import {
   AccessTokenPayload,
   TokenService,
 } from "../../application/services/TokenService.js";
 import { JWT_SECRET } from "../../config/config.js";
+import jwt from "jsonwebtoken";
 
-export class JwtTokenServices implements TokenService {
-  generateAccessToken(userId: number): string {
-    if (!JWT_SECRET) {
-      throw new Error("JWT_SECRET no está configurado");
-    }
-
-    return jwt.sign(
-      {
-        userId,
-      },
-      JWT_SECRET,
-      {
-        expiresIn: "1h",
-      },
-    );
-  }
-
+export class JwtTokenService implements TokenService {
   verifyAccessToken(token: string): AccessTokenPayload {
     if (!JWT_SECRET) {
       throw new Error("JWT_SECRET no está configurado");

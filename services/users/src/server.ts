@@ -62,5 +62,5 @@ app.get("/health", async (_req, res) => {
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`Users service corriendo en el puerto ${PORT}`);
+  console.log(`Microservicio users ejecutándose en el puerto ${PORT}`);
 });
