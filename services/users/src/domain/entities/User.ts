@@ -5,6 +5,8 @@ export interface UserProps {
   code: string;
   email: string;
   password: string;
+  school: string;
+  cycle: number;
   createdAt: Date;
 }
 
@@ -15,6 +17,8 @@ export class User {
   private code: string;
   private email: string;
   private password: string;
+  private school: string;
+  private cycle: number;
   private createdAt: Date;
 
   constructor(props: UserProps) {
@@ -26,6 +30,8 @@ export class User {
     this.code = props.code;
     this.email = props.email;
     this.password = props.password;
+    this.school = props.school;
+    this.cycle = props.cycle;
     this.createdAt = props.createdAt;
   }
 
@@ -61,6 +67,14 @@ export class User {
 
   getPassword(): string {
     return this.password;
+  }
+
+  getSchool(): string {
+    return this.school;
+  }
+
+  getCycle(): number {
+    return this.cycle;
   }
 
   getCreatedAt(): Date {

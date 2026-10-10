@@ -10,6 +10,8 @@ interface UserRow extends RowDataPacket {
   code: string;
   email: string;
   password: string;
+  school: string;
+  cycle: number;
   created_at: Date;
 }
 
@@ -23,9 +25,11 @@ export class MySqlUserRepository implements UserRepository {
           code,
           email,
           password,
+          school,
+          cycle,
           created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         user.getNames(),
@@ -33,6 +37,8 @@ export class MySqlUserRepository implements UserRepository {
         user.getCode(),
         user.getEmail(),
         user.getPassword(),
+        user.getSchool(),
+        user.getCycle(),
         user.getCreatedAt(),
       ],
     );
@@ -52,6 +58,8 @@ export class MySqlUserRepository implements UserRepository {
           code,
           email,
           password,
+          school,
+          cycle,
           created_at
         FROM users
         WHERE id = ?
@@ -63,17 +71,7 @@ export class MySqlUserRepository implements UserRepository {
       return null;
     }
 
-    const row = rows[0];
-
-    return new User({
-      id: row.id,
-      names: row.names,
-      surnames: row.surnames,
-      code: row.code,
-      email: row.email,
-      password: row.password,
-      createdAt: row.created_at,
-    });
+    return this.toDomain(rows[0]);
   }
 
   async findByEmail(email: string): Promise<User | null> {
@@ -86,6 +84,8 @@ export class MySqlUserRepository implements UserRepository {
           code,
           email,
           password,
+          school,
+          cycle,
           created_at
         FROM users
         WHERE email = ?
@@ -97,17 +97,7 @@ export class MySqlUserRepository implements UserRepository {
       return null;
     }
 
-    const row = rows[0];
-
-    return new User({
-      id: row.id,
-      names: row.names,
-      surnames: row.surnames,
-      code: row.code,
-      email: row.email,
-      password: row.password,
-      createdAt: row.created_at,
-    });
+    return this.toDomain(rows[0]);
   }
 
   async findByCode(code: string): Promise<User | null> {
@@ -120,6 +110,8 @@ export class MySqlUserRepository implements UserRepository {
           code,
           email,
           password,
+          school,
+          cycle,
           created_at
         FROM users
         WHERE code = ?
@@ -131,8 +123,32 @@ export class MySqlUserRepository implements UserRepository {
       return null;
     }
 
-    const row = rows[0];
+    return this.toDomain(rows[0]);
+  }
 
+  async findAll(): Promise<User[]> {
+    const [rows] = await pool.query<UserRow[]>(
+      `
+        SELECT
+          id,
+          names,
+          surnames,
+          code,
+          email,
+          password,
+          school,
+          cycle,
+          created_at
+        FROM
+        users
+        ORDER BY id
+      `,
+    );
+
+    return rows.map((row) => this.toDomain(row));
+  }
+
+  private toDomain(row: UserRow): User {
     return new User({
       id: row.id,
       names: row.names,
@@ -140,6 +156,8 @@ export class MySqlUserRepository implements UserRepository {
       code: row.code,
       email: row.email,
       password: row.password,
+      school: row.school,
+      cycle: row.cycle,
       createdAt: row.created_at,
     });
   }
