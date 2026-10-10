@@ -5,6 +5,7 @@ import {
   AiPredictionClient,
   AiPredictionInput,
 } from "../clients/AiPredictionClient.js";
+import { RecommendationNotFoundError } from "../errors/RecommendationNotFoundError.js";
 
 export interface CreateRiskEvaluationInput extends AiPredictionInput {
   userId: number;
@@ -50,9 +51,7 @@ export class CreateRiskEvaluation {
       );
 
     if (!recommendation) {
-      throw new Error(
-        `No existe una recomendación para el nivel ${prediction.riskLevel}`,
-      );
+      throw new RecommendationNotFoundError(prediction.riskLevel);
     }
 
     const riskEvaluation = new RiskEvaluation({
