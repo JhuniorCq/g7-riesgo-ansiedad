@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from src.application.predict_risk import PredictRiskUseCase
+from src.infrastructure.fallback_report_generator import FallbackReportGenerator
 from src.domain.risk import PredictionError, ModelsUnavailableError, RiskPredictor, categorize_risk
 from src.presentation.http import create_http_app
 from src.presentation.validation import RANGES, validate_indicators
@@ -38,8 +39,9 @@ class PredictionTests(unittest.TestCase):
 
     def test_use_case_depends_on_port(self):
         fake = FakePredictor()
-        result = PredictRiskUseCase(fake).execute(PAYLOAD)
-        self.assertEqual(result, {"nivel_riesgo": "ALTO", "probabilidad_ansiedad": .8})
+        result = PredictRiskUseCase(fake, FallbackReportGenerator()).execute(PAYLOAD)
+        self.assertEqual(result["nivel_riesgo"], "ALTO")
+        self.assertEqual(result["probabilidad_ansiedad"], .8)
         self.assertEqual(fake.calls, 1)
 
     def test_every_required_field_and_range(self):
@@ -57,7 +59,7 @@ class PredictionTests(unittest.TestCase):
 
     def test_http_valid_and_invalid(self):
         fake = FakePredictor()
-        client = create_http_app(PredictRiskUseCase(fake), 5).test_client()
+        client = create_http_app(PredictRiskUseCase(fake, FallbackReportGenerator()), 5).test_client()
         self.assertEqual(client.get("/health").json["models_loaded"], 5)
         response = client.post("/predict", json=PAYLOAD)
         self.assertEqual(response.status_code, 200)
@@ -74,7 +76,7 @@ class PredictionTests(unittest.TestCase):
         self.assertEqual(client.get("/health").status_code, 503)
         self.assertEqual(client.post("/predict", json=PAYLOAD).status_code, 503)
         for error, status in [(PredictionError("private details"), 500), (ModelsUnavailableError("private details"), 503)]:
-            client = create_http_app(PredictRiskUseCase(FakePredictor(error=error)), 5).test_client()
+            client = create_http_app(PredictRiskUseCase(FakePredictor(error=error), FallbackReportGenerator()), 5).test_client()
             response = client.post("/predict", json=PAYLOAD)
             self.assertEqual(response.status_code, status)
             self.assertNotIn("private details", response.get_data(as_text=True))

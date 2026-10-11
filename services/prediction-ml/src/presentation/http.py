@@ -23,23 +23,23 @@ def create_http_app(use_case: PredictRiskUseCase | None, models_loaded: int) -> 
             indicators = validate_indicators(request.get_json())
         except (ValueError, BadRequest) as exc:
             message = "JSON malformado" if isinstance(exc, BadRequest) else str(exc)
-            return jsonify(error=message), 400
+            return jsonify(error="Error", mensaje=message), 400
         if use_case is None:
-            return jsonify(error="Los modelos no están disponibles"), 503
+            return jsonify(error="Error", mensaje="Los modelos no están disponibles"), 503
         try:
             return jsonify(use_case.execute(indicators))
         except ModelsUnavailableError:
-            app.logger.exception("Modelos no disponibles")
-            return jsonify(error="Los modelos no están disponibles"), 503
+            app.logger.error("Modelos no disponibles")
+            return jsonify(error="Error", mensaje="Los modelos no están disponibles"), 503
         except PredictionError:
-            app.logger.exception("Error de inferencia")
-            return jsonify(error="No se pudo realizar la predicción"), 500
+            app.logger.error("Error de inferencia")
+            return jsonify(error="Error", mensaje="No se pudo realizar la predicción"), 500
 
     @app.errorhandler(Exception)
     def handle_error(exc):
         if isinstance(exc, HTTPException):
-            return jsonify(error=exc.description), exc.code
-        app.logger.exception("Error interno")
-        return jsonify(error="Error interno del servicio"), 500
+            return jsonify(error="Error", mensaje=exc.description), exc.code
+        app.logger.error("Error interno")
+        return jsonify(error="Error", mensaje="Error interno del servicio"), 500
 
     return app

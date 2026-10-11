@@ -5,6 +5,7 @@ import os
 from src.application.predict_risk import PredictRiskUseCase
 from src.domain.risk import ModelsUnavailableError
 from src.infrastructure.ensemble_predictor import EnsemblePredictor
+from src.infrastructure.gemini_report_generator import GeminiReportGenerator
 from src.presentation.http import create_http_app
 
 
@@ -14,7 +15,7 @@ def create_app():
     except ModelsUnavailableError:
         logging.getLogger(__name__).exception("No se pudo iniciar el ensamble")
         return create_http_app(None, 0)
-    return create_http_app(PredictRiskUseCase(predictor), predictor.models_loaded)
+    return create_http_app(PredictRiskUseCase(predictor, GeminiReportGenerator()), predictor.models_loaded)
 
 
 if __name__ == "__main__":

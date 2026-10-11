@@ -24,7 +24,7 @@ def request_json(path, payload=None):
 if __name__ == "__main__":
     root = Path(__file__).resolve().parents[1]
     process = subprocess.Popen([sys.executable, "app.py"], cwd=root,
-                               env={**os.environ, "PORT": "5001"})
+                               env={**os.environ, "PORT": "5001", "GEMINI_API_KEY": ""})
     try:
         for attempt in range(60):
             if process.poll() is not None:
@@ -41,9 +41,11 @@ if __name__ == "__main__":
         valid = request_json("/predict", payload)
         assert valid[0] == 200 and valid[1]["nivel_riesgo"] == "ALTO", valid
         assert 0 <= valid[1]["probabilidad_ansiedad"] <= 1
+        assert set(valid[1]) == {"nivel_riesgo", "probabilidad_ansiedad", "explicacion", "reporte_ia"}
+        assert len(valid[1]["reporte_ia"]) == 9
         del payload["gad7_score"]
         invalid = request_json("/predict", payload)
-        assert invalid[0] == 400 and "gad7_score" in invalid[1]["error"], invalid
+        assert invalid[0] == 400 and "gad7_score" in invalid[1]["mensaje"], invalid
         print("HEALTH:", health)
         print("PREDICT:", valid)
         print("INVALID:", invalid)
