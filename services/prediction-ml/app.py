@@ -1,6 +1,12 @@
 """Composition root: wire the ML output adapter to the HTTP input adapter."""
 import logging
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# override=False keeps system/process environment variables authoritative.
+load_dotenv(Path(__file__).resolve().parent / '.env')
 
 from src.application.predict_risk import PredictRiskUseCase
 from src.domain.risk import ModelsUnavailableError

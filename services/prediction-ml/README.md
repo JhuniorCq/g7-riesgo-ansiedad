@@ -12,9 +12,21 @@ añadiendo que no es diagnóstico clínico. Gemini nunca calcula el riesgo.
 
 El puerto `ReportGenerator` se inyecta en `PredictRiskUseCase`. Su adaptador
 `GeminiReportGenerator` usa `google-genai==2.14.0`, importado de forma diferida.
-Configurar `GEMINI_API_KEY` y `GEMINI_MODEL` en el entorno del proceso.
+Configurar `GEMINI_API_KEY` y `GEMINI_MODEL` en `services/prediction-ml/.env`.
 No hay modelo predeterminado: elegir uno habilitado para la cuenta.
-No se leen archivos .env automáticamente ni se guardan evaluaciones.
+No se guardan evaluaciones ni se registran prompts, claves o respuestas del proveedor.
+
+### Carga de configuracion
+
+`app.py` ejecuta `load_dotenv(Path(__file__).resolve().parent / ".env")` con
+`override=False`, antes de construir el adaptador:
+
+- `GEMINI_API_KEY` y `GEMINI_MODEL` se leen de `services/prediction-ml/.env`.
+- Las variables ya definidas en el entorno del proceso tienen prioridad;
+  el `.env` nunca las sobrescribe.
+- `.env` esta ignorado por Git (`.gitignore` de la raiz, linea 2). Usar
+  `.env.example` como plantilla; no versionar credenciales reales.
+- No se guardan evaluaciones ni se registran prompts, claves o respuestas.
 
 El prompt recuperado del proyecto original pide orientación universitaria,
 JSON sin markdown y límites de 5 fortalezas/factores/recomendaciones, 7 acciones
@@ -33,7 +45,12 @@ Los nueve campos obligatorios del reporte son:
 textos vacíos, tipos incorrectos y listas que exceden los límites.
 Validar estructura no garantiza la exactitud del contenido generativo.
 
-Timeout HTTP del SDK: 5000 ms; reintentos internos deshabilitados.
+El esquema enviado a Gemini es \`GEMINI_SCHEMA\`: una \`deepcopy\` de
+\`REPORT_SCHEMA\` sin \`additionalProperties\`, porque la API valida
+\`response_schema\` contra OpenAPI 3.0 y rechaza esa clave. \`REPORT_SCHEMA\` y
+\`validate_report\` permanecen intactos como contrato estricto.
+
+Timeout HTTP del SDK: 15000 ms; reintentos internos deshabilitados.
 Máximo dos intentos del adaptador, con pausa de 0.25 s únicamente ante timeout
 o HTTP 408/429/500/502/503/504. No reintenta JSON inválido ni errores permanentes.
 El presupuesto típico máximo de espera de red es aproximadamente 10.25 s,
@@ -52,6 +69,7 @@ y rutas/métodos (404/405) usan `{"error":"Error","mensaje":"Texto comprensible"
 `python -m unittest discover -s tests -v` usa clientes Gemini simulados.
 `python tests/verify_real_http.py` usa los modelos locales y fuerza clave vacía
 en el proceso hijo para impedir llamadas Gemini; no almacena evaluaciones.
+Verifica el camino de fallback determinista, no la integracion con Gemini.
 
 ### Prueba real manual (requiere autorización)
 

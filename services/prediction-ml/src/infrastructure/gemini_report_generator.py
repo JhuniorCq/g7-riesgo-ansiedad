@@ -1,4 +1,5 @@
 """Optional modern Gemini adapter. No calls or clients at import time."""
+import copy
 import json
 import os
 import time
@@ -14,6 +15,14 @@ def _unique_object(pairs):
             raise ValueError('Duplicate JSON field')
         result[key] = value
     return result
+
+
+# Gemini's generateContent validates response_schema against OpenAPI 3.0 and
+# rejects additionalProperties, so that key is stripped for the wire only.
+# deepcopy keeps nested structures independent from REPORT_SCHEMA, which
+# remains the strict contract enforced by validate_report.
+GEMINI_SCHEMA = copy.deepcopy(REPORT_SCHEMA)
+GEMINI_SCHEMA.pop('additionalProperties', None)
 
 
 def build_prompt(indicators, probability, risk_level):
@@ -49,7 +58,7 @@ class GeminiReportGenerator(ReportGenerator):
         from google.genai import types
         # Milliseconds; disable SDK retries so our two-attempt policy is authoritative.
         return genai.Client(api_key=api_key, http_options=types.HttpOptions(
-            timeout=5000, retry_options=types.HttpRetryOptions(attempts=1)))
+            timeout=15000, retry_options=types.HttpRetryOptions(attempts=1)))
 
     def generate(self, indicators, probability, risk_level):
         if not self._api_key.strip() or not self._model.strip():
@@ -63,7 +72,7 @@ class GeminiReportGenerator(ReportGenerator):
                         model=self._model,
                         contents=build_prompt(indicators, probability, risk_level),
                         config={'response_mime_type': 'application/json',
-                                'response_json_schema': REPORT_SCHEMA,
+                                'response_schema': GEMINI_SCHEMA,
                                 'temperature': 0.2, 'max_output_tokens': 2048},
                     )
                     report = validate_report(json.loads(response.text, object_pairs_hook=_unique_object))

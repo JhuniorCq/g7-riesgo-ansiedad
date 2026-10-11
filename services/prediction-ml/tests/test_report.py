@@ -1,3 +1,4 @@
+import copy
 import json
 import unittest
 from types import SimpleNamespace
@@ -5,7 +6,8 @@ from unittest.mock import Mock, patch
 
 from src.domain.report import REPORT_SCHEMA, validate_report, EXPLANATIONS
 from src.infrastructure.fallback_report_generator import FallbackReportGenerator
-from src.infrastructure.gemini_report_generator import GeminiReportGenerator, build_prompt
+from src.infrastructure.gemini_report_generator import (
+    GeminiReportGenerator, build_prompt, GEMINI_SCHEMA)
 from src.application.predict_risk import PredictRiskUseCase
 from src.presentation.http import create_http_app
 from test_prediction import PAYLOAD, FakePredictor
@@ -105,9 +107,10 @@ class ReportTests(unittest.TestCase):
         with patch.object(genai, 'Client') as factory:
             GeminiReportGenerator._create_client('dummy')
             options = factory.call_args.kwargs['http_options']
-            self.assertEqual(options.timeout, 5000)
+            self.assertEqual(options.timeout, 15000)
             self.assertEqual(options.retry_options.attempts, 1)
-        types.GenerateContentConfig(response_json_schema=REPORT_SCHEMA)
+        types.GenerateContentConfig(response_mime_type='application/json',
+                                   response_schema=GEMINI_SCHEMA)
 
     def test_errors_have_safe_envelope(self):
         app = create_http_app(PredictRiskUseCase(FakePredictor(), FallbackReportGenerator()), 5)
@@ -128,6 +131,63 @@ class ReportTests(unittest.TestCase):
         response = create_http_app(None, 0).test_client().post('/predict', json=PAYLOAD)
         self.assertEqual(response.status_code, 503)
         self.assertEqual(set(response.json), {'error', 'mensaje'})
+
+    def test_gemini_schema_strips_additional_properties(self):
+        # El esquema enviado a Gemini no debe incluir additionalProperties
+        self.assertNotIn('additionalProperties', GEMINI_SCHEMA)
+        # REPORT_SCHEMA original permanece intacto
+        self.assertIn('additionalProperties', REPORT_SCHEMA)
+        self.assertIs(REPORT_SCHEMA['additionalProperties'], False)
+        # Los nueve campos, sus tipos y required se conservan
+        self.assertEqual(len(GEMINI_SCHEMA['properties']), 9)
+        self.assertEqual(len(GEMINI_SCHEMA['required']), 9)
+        self.assertEqual(GEMINI_SCHEMA['properties'],
+                         {k: v for k, v in REPORT_SCHEMA['properties'].items()})
+        self.assertEqual(GEMINI_SCHEMA['required'], REPORT_SCHEMA['required'])
+        self.assertEqual(GEMINI_SCHEMA['type'], REPORT_SCHEMA['type'])
+        # La clave prohibida no aparece en ningun nivel del esquema enviado
+        self.assertNotIn('additionalProperties', GEMINI_SCHEMA)
+        self.assertNotIn('additionalProperties',
+                         GEMINI_SCHEMA.get('properties', {}))
+        # GEMINI_SCHEMA sigue siendo consumible por GenerateContentConfig
+        from google.genai import types
+        cfg = types.GenerateContentConfig(
+            response_mime_type='application/json',
+            response_schema=GEMINI_SCHEMA)
+        dumped = cfg.model_dump(exclude_none=True, mode='json')
+        self.assertNotIn('additionalProperties', dumped['response_schema'])
+
+    def test_validate_report_still_rejects_extra_fields(self):
+        # La validacion estricta sigue rechazando campos adicionales
+        base = FallbackReportGenerator().generate(PAYLOAD, .42, 'MEDIO')
+        with self.assertRaises(ValueError):
+            validate_report({**base, 'campo_extra': 'x'})
+        with self.assertRaises(ValueError):
+            validate_report({k: v for k, v in base.items() if k != 'resumen'})
+        self.assertEqual(validate_report(base), base)
+
+    def test_gemini_schema_mutation_does_not_affect_report_schema(self):
+        # deepcopy debe aislar las estructuras anidadas de REPORT_SCHEMA
+        snapshot = copy.deepcopy(REPORT_SCHEMA)
+        try:
+            GEMINI_SCHEMA['properties']['resumen']['type'] = 'number'
+            GEMINI_SCHEMA['properties']['fortalezas']['maxItems'] = 999
+            GEMINI_SCHEMA['required'].append('campo_inventado')
+            # REPORT_SCHEMA no debe haberse alterado
+            self.assertEqual(REPORT_SCHEMA, snapshot)
+            self.assertEqual(REPORT_SCHEMA['properties']['resumen']['type'], 'string')
+            self.assertEqual(REPORT_SCHEMA['properties']['fortalezas']['maxItems'], 5)
+            self.assertNotIn('campo_inventado', REPORT_SCHEMA['required'])
+            # La validacion estricta sigue usando el contrato original
+            base = FallbackReportGenerator().generate(PAYLOAD, .42, 'MEDIO')
+            self.assertEqual(validate_report(base), base)
+        finally:
+            # Restaurar el estado del modulo para no contaminar otros tests
+            for key, value in snapshot.items():
+                GEMINI_SCHEMA[key] = copy.deepcopy(value)
+            GEMINI_SCHEMA.pop('additionalProperties', None)
+        self.assertEqual(GEMINI_SCHEMA['properties']['resumen']['type'], 'string')
+        self.assertNotIn('additionalProperties', GEMINI_SCHEMA)
 
 
 if __name__ == '__main__':

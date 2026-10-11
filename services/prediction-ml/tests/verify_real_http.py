@@ -1,4 +1,9 @@
-"""Manual integration check with real models over HTTP; run from service root."""
+"""Manual HTTP check that verifies the deterministic FALLBACK path.
+
+Runs the real ML models but forces an empty GEMINI_API_KEY in the child
+process, so it never calls Gemini. It asserts the contract, the nine
+report fields and the 400 error envelope only. Run from service root.
+"""
 import json
 import os
 from pathlib import Path
@@ -24,7 +29,8 @@ def request_json(path, payload=None):
 if __name__ == "__main__":
     root = Path(__file__).resolve().parents[1]
     process = subprocess.Popen([sys.executable, "app.py"], cwd=root,
-                               env={**os.environ, "PORT": "5001", "GEMINI_API_KEY": ""})
+                               # Empty key forces the deterministic fallback: no Gemini call is made.
+                           env={**os.environ, "PORT": "5001", "GEMINI_API_KEY": ""})
     try:
         for attempt in range(60):
             if process.poll() is not None:
