@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'package:http/http.dart' as http;
+
 import '../../../../core/constants.dart';
 import '../../models/evaluacion_model.dart';
 import '../../models/recomendacion_model.dart';
@@ -13,7 +16,11 @@ class EvaluacionRemoteDataSource {
 
   EvaluacionRemoteDataSource(this._apiService);
 
-  /// Envía las respuestas del cuestionario y obtiene la predicción de riesgo.
+  /// Envia las 15 variables del contrato y obtiene la prediccion de riesgo.
+  ///
+  /// Usa POST /risk-evaluations/ con JSON camelCase y JWT. Los errores HTTP se
+  /// traducen a mensajes comprensibles aqui, para que la capa de presentacion
+  /// no dependa de ApiException (misma convencion que el login).
   Future<
     ({
       ResultadoMlModel resultado,
@@ -21,37 +28,61 @@ class EvaluacionRemoteDataSource {
       String? explicacion,
     })
   >
-  evaluarRiesgo(Map<String, double> variables) async {
-    final response = await _apiService.post(
-      AppConstants.evaluar,
-      body: variables,
-    );
+  evaluarRiesgo(Map<String, num> variables) async {
+    final Map<String, dynamic> response;
+    try {
+      response = await _apiService.post(
+        AppConstants.evaluar,
+        body: variables,
+        expectedStatus: 201,
+      );
+    } on ApiException catch (e) {
+      throw Exception(_mensajeHttp(e.statusCode));
+    } on TimeoutException {
+      throw Exception('El servidor tardo en responder. Intentalo de nuevo.');
+    } on http.ClientException {
+      throw Exception('No se pudo conectar con el servicio de evaluacion.');
+    } on FormatException {
+      throw Exception(
+        'El servicio devolvió una respuesta inesperada. Reintenta.',
+      );
+    }
 
-    final probabilidad =
-        (response['probabilidad_ansiedad'] as num?)?.toDouble() ?? 0.0;
-    final nivelRiesgo = response['nivel_riesgo'] as String? ?? 'BAJO';
-    final explicacion = response['explicacion'] as String?;
-
-    final recomendacionesJson =
-        response['recomendaciones'] as List<dynamic>? ?? [];
-    final recomendaciones = recomendacionesJson
-        .map((r) => RecomendacionModel.fromJson(r as Map<String, dynamic>))
-        .toList();
-
-    final resultado = ResultadoMlModel(
-      idResultado: response['id_evaluacion'] ?? 0,
-      idEvaluacion: response['id_evaluacion'] ?? 0,
-      idUsuario: 0,
-      probabilidadAnsiedad: probabilidad,
-      nivelRiesgo: nivelRiesgo,
-      recomendaciones: recomendaciones,
-    );
-
+    // Una respuesta que no cumple el contrato se rechaza: nunca se muestra
+    // probabilidad 0 ni riesgo BAJO por defecto.
+    late final ResultadoMlModel resultado;
+    try {
+      resultado = ResultadoMlModel.fromRiskEvaluation(response);
+    } on FormatException {
+      throw Exception(
+        'El servicio devolvió una evaluación incompleta o inválida. Reintenta.',
+      );
+    }
     return (
       resultado: resultado,
-      recomendaciones: recomendaciones,
-      explicacion: explicacion,
+      recomendaciones: resultado.recomendaciones,
+      explicacion: response['explanation'] as String?,
     );
+  }
+
+  /// Mensaje comprensible segun el codigo HTTP, sin exponer datos sensibles.
+  String _mensajeHttp(int statusCode) {
+    if (statusCode == 400) {
+      return 'Los datos enviados no son validos. Revisa tus respuestas.';
+    }
+    if (statusCode == 401) {
+      return 'Tu sesion expiro. Vuelve a iniciar sesion e intentalo de nuevo.';
+    }
+    if (statusCode == 403) {
+      return 'No tienes permiso para enviar esta evaluación.';
+    }
+    if (statusCode == 404) {
+      return 'El servicio de evaluacion no esta disponible. Contacta al responsable.';
+    }
+    if (statusCode >= 500) {
+      return 'El servicio no esta disponible en este momento. Intentalo mas tarde.';
+    }
+    return 'No se pudo enviar la evaluacion. Intentalo de nuevo.';
   }
 
   /// Obtiene el historial de evaluaciones del usuario autenticado.

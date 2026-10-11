@@ -44,6 +44,43 @@ class ReporteIAModel {
     );
   }
 
+  /// Crea un DTO desde el aiReport del contrato de RiskEvaluation.
+  ///
+  /// El backend expone el reporte en camelCase (summary, strengths,
+  /// concerningFactors, ...). Se conservan las nueve secciones; una lista
+  /// ausente o de tipo incorrecto es un error en lugar de una lista vacia,
+  /// para no ocultar contenido que el servicio si devolvio.
+  factory ReporteIAModel.fromRiskEvaluation(Map<String, dynamic> json) {
+    return ReporteIAModel(
+      resumen: _texto(json, 'summary'),
+      fortalezas: _lista(json, 'strengths'),
+      factoresPreocupantes: _lista(json, 'concerningFactors'),
+      recomendaciones: _lista(json, 'recommendations'),
+      plan7Dias: _lista(json, 'sevenDayPlan'),
+      temasVideos: _lista(json, 'videoTopics'),
+      temasLectura: _lista(json, 'readingTopics'),
+      prioridadIntervencion: _texto(json, 'priorityIntervention'),
+      mensajeMotivacional: _texto(json, 'motivationalMessage'),
+    );
+  }
+
+  static String _texto(Map<String, dynamic> json, String key) {
+    final value = json[key];
+    if (value is! String || value.trim().isEmpty) {
+      throw FormatException('El reporte de IA no contiene $key valido.');
+    }
+    return value;
+  }
+
+  static List<String> _lista(Map<String, dynamic> json, String key) {
+    final value = json[key];
+    if (value is! List ||
+        value.any((item) => item is! String || item.trim().isEmpty)) {
+      throw FormatException('El reporte de IA no contiene $key valido.');
+    }
+    return List<String>.from(value);
+  }
+
   /// Convierte el DTO a entidad de dominio
   ReporteIA toEntity() {
     return ReporteIA(

@@ -21,6 +21,7 @@ class _ApiServicePrueba extends ApiService {
     String url, {
     Map<String, dynamic>? body,
     bool withAuth = true,
+    int? expectedStatus,
   }) async {
     urlCapturada = url;
     bodyCapturado = body;

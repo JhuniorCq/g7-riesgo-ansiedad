@@ -55,6 +55,7 @@ class _FakeApi extends ApiService {
     String url, {
     Map<String, dynamic>? body,
     bool withAuth = true,
+    int? expectedStatus,
   }) async {
     this.url = url;
     this.body = body;

@@ -58,6 +58,7 @@ class SessionApi extends ApiService {
     String url, {
     Map<String, dynamic>? body,
     bool withAuth = true,
+    int? expectedStatus,
   }) async => {
     'accessToken': 'new-test',
     'user': {...user, 'id': 2},

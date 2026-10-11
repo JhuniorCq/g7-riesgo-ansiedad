@@ -87,6 +87,7 @@ class ApiService {
     String url, {
     Map<String, dynamic>? body,
     bool withAuth = true,
+    int? expectedStatus,
   }) async {
     final session = (withAuth ? _token : null, _sessionVersion);
     final response = await http
@@ -97,6 +98,12 @@ class ApiService {
         )
         .timeout(const Duration(seconds: 15));
     await _checkUnauthorized(response, session);
+    if (expectedStatus != null &&
+        response.statusCode >= 200 &&
+        response.statusCode < 300 &&
+        response.statusCode != expectedStatus) {
+      throw const FormatException('Código de respuesta inesperado.');
+    }
     return _procesarRespuesta(response);
   }
 

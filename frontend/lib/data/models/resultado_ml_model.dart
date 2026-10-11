@@ -47,6 +47,90 @@ class ResultadoMlModel {
     );
   }
 
+  /// Niveles de riesgo aceptados por el contrato de RiskEvaluation.
+  static const _niveles = {'BAJO', 'MEDIO', 'ALTO'};
+
+  /// Crea un DTO desde la respuesta de POST /risk-evaluations/.
+  ///
+  /// La respuesta usa camelCase. Un contrato incompleto o invalido lanza
+  /// [FormatException]: nunca se completa con probabilidad 0 ni riesgo BAJO,
+  /// porque eso presentaria al usuario un resultado que el servicio no dio.
+  factory ResultadoMlModel.fromRiskEvaluation(Map<String, dynamic> json) {
+    final id = json['id'];
+    if (id is! int || id <= 0) {
+      throw const FormatException(
+        'La respuesta del servicio no contiene un id valido.',
+      );
+    }
+
+    final probabilidad = json['anxietyProbability'];
+    if (probabilidad is! num ||
+        !probabilidad.isFinite ||
+        probabilidad < 0 ||
+        probabilidad > 1) {
+      throw const FormatException(
+        'La respuesta del servicio no contiene una probabilidad valida.',
+      );
+    }
+
+    final nivel = json['riskLevel'];
+    final nivelValido = nivel is String && _niveles.contains(nivel);
+    if (!nivelValido) {
+      throw const FormatException(
+        'La respuesta del servicio no contiene un nivel de riesgo valido.',
+      );
+    }
+
+    final explicacion = json['explanation'];
+    if (explicacion is! String || explicacion.trim().isEmpty) {
+      throw const FormatException(
+        'La respuesta del servicio no contiene una explicacion valida.',
+      );
+    }
+
+    final recomendacionesJson = json['recommendations'];
+    if (recomendacionesJson is! List) {
+      throw const FormatException(
+        'La respuesta del servicio no contiene recomendaciones validas.',
+      );
+    }
+
+    final reporteJson = json['aiReport'];
+    if (reporteJson is! Map<String, dynamic>) {
+      throw const FormatException(
+        'La respuesta del servicio no contiene un reporte de IA valido.',
+      );
+    }
+    final userId = json['userId'];
+    final createdAt = json['createdAt'];
+    if (userId is! int ||
+        userId <= 0 ||
+        createdAt is! String ||
+        DateTime.tryParse(createdAt) == null ||
+        recomendacionesJson.any((r) => r is! Map<String, dynamic>)) {
+      throw const FormatException(
+        'Identidad, fecha o recomendaciones inválidas.',
+      );
+    }
+
+    return ResultadoMlModel(
+      idResultado: id,
+      idEvaluacion: id,
+      idUsuario: userId,
+      probabilidadAnsiedad: probabilidad.toDouble(),
+      nivelRiesgo: nivel,
+      fechaPrediccion: createdAt,
+      recomendaciones: recomendacionesJson
+          .map(
+            (r) => RecomendacionModel.fromRiskEvaluation(
+              r as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
+      reporteIA: ReporteIAModel.fromRiskEvaluation(reporteJson),
+    );
+  }
+
   /// Convierte el DTO a entidad de dominio
   ResultadoMl toEntity() {
     return ResultadoMl(

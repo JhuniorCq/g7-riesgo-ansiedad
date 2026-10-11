@@ -44,7 +44,9 @@ class EvaluacionViewModel extends ChangeNotifier {
   // ==========================================
   // EVALUAR RIESGO
   // ==========================================
-  Future<bool> evaluarRiesgo(Map<String, double> variables) async {
+  Future<bool> evaluarRiesgo(Map<String, num> variables) async {
+    // Una sola peticion en vuelo: un segundo toque no duplica el envio.
+    if (_isLoading) return false;
     final session = _sessionVersion;
     _isLoading = true;
     _error = null;
@@ -65,9 +67,11 @@ class EvaluacionViewModel extends ChangeNotifier {
       return true;
     } catch (e) {
       if (session != _sessionVersion) return false;
-      _error = e.toString().contains('Exception')
-          ? e.toString()
-          : 'Error de conexión con el servidor';
+      // El datasource ya entrega mensajes comprensibles; aqui solo se limpia el
+      // prefijo para no mostrar "Exception: ..." al usuario.
+      _error = e is Exception
+          ? e.toString().replaceFirst(RegExp(r'^Exception: '), '')
+          : 'No se pudo enviar la evaluacion. Intentalo de nuevo.';
       _isLoading = false;
       notifyListeners();
       return false;

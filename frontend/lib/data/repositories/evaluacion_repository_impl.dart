@@ -21,7 +21,7 @@ class EvaluacionRepositoryImpl implements EvaluacionRepository {
       String? explicacion,
     })
   >
-  evaluarRiesgo(Map<String, double> variables) async {
+  evaluarRiesgo(Map<String, num> variables) async {
     final result = await _remoteDataSource.evaluarRiesgo(variables);
     return (
       resultado: result.resultado.toEntity(),

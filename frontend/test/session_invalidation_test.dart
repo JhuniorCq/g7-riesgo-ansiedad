@@ -74,6 +74,35 @@ Future<void> fail(Future<dynamic> future) async {
   await expectLater(future, throwsA(isA<ApiException>()));
 }
 
+// Respuesta 201 completa de POST /risk-evaluations/ (contrato camelCase).
+const riskEvaluationResponse = <String, dynamic>{
+  'id': 7,
+  'userId': 1,
+  'anxietyProbability': 0.42,
+  'riskLevel': 'MEDIO',
+  'explanation': 'test',
+  'recommendations': [
+    {
+      'id': 1,
+      'category': 'MEDIO',
+      'title': 'Organiza tus tiempos',
+      'description': 'Planifica estudio y descanso.',
+    },
+  ],
+  'aiReport': {
+    'summary': 'Resumen de prueba.',
+    'strengths': ['Cuentas con apoyo.'],
+    'concerningFactors': ['Estres academico.'],
+    'recommendations': ['Organizar horarios.'],
+    'sevenDayPlan': ['Dia 1: organizar.'],
+    'videoTopics': ['Manejo del estres'],
+    'readingTopics': ['Habitos de sueno'],
+    'priorityIntervention': 'SEGUIMIENTO',
+    'motivationalMessage': 'Avanza paso a paso.',
+  },
+  'createdAt': '2026-10-11T00:00:00Z',
+};
+
 class EvaluationApi extends ApiService {
   Completer<Map<String, dynamic>>? pendingResult;
   Completer<List<dynamic>>? pendingHistory;
@@ -82,12 +111,9 @@ class EvaluationApi extends ApiService {
     String url, {
     Map<String, dynamic>? body,
     bool withAuth = true,
+    int? expectedStatus,
   }) async => pendingResult == null
-      ? {
-          'probabilidad_ansiedad': .42,
-          'nivel_riesgo': 'MEDIO',
-          'explicacion': 'test',
-        }
+      ? riskEvaluationResponse
       : await pendingResult!.future;
   @override
   Future<List<dynamic>> getList(String url) async => pendingHistory == null
@@ -345,7 +371,7 @@ void main() {
       final result = vm.evaluarRiesgo({});
       final history = vm.obtenerHistorial();
       vm.limpiarSesion();
-      api.pendingResult!.complete({'probabilidad_ansiedad': .42});
+      api.pendingResult!.complete(riskEvaluationResponse);
       api.pendingHistory!.complete([
         {'id_evaluacion': 1},
       ]);

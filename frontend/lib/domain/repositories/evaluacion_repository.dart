@@ -15,7 +15,7 @@ abstract class EvaluacionRepository {
       String? explicacion,
     })
   >
-  evaluarRiesgo(Map<String, double> variables);
+  evaluarRiesgo(Map<String, num> variables);
 
   /// Obtiene el historial de evaluaciones del usuario autenticado.
   Future<List<Evaluacion>> obtenerHistorial();

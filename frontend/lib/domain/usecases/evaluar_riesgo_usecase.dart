@@ -18,7 +18,7 @@ class EvaluarRiesgoUseCase {
       String? explicacion,
     })
   >
-  call(Map<String, double> variables) async {
+  call(Map<String, num> variables) async {
     return _evaluacionRepository.evaluarRiesgo(variables);
   }
 }

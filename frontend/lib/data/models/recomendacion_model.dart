@@ -27,6 +27,36 @@ class RecomendacionModel {
     );
   }
 
+  /// Crea un DTO desde una recomendacion del contrato de RiskEvaluation.
+  ///
+  /// El backend responde camelCase (id, category, title, description). Una
+  /// recomendacion incompleta es un error: no se rellena con cadenas vacias,
+  /// porque eso mostraria al usuario una recomendacion inventada.
+  factory RecomendacionModel.fromRiskEvaluation(Map<String, dynamic> json) {
+    final id = json['id'];
+    final category = json['category'];
+    final title = json['title'];
+    final description = json['description'];
+    if (id is! int ||
+        id <= 0 ||
+        category is! String ||
+        !{'BAJO', 'MEDIO', 'ALTO'}.contains(category) ||
+        title is! String ||
+        title.trim().isEmpty ||
+        description is! String ||
+        description.trim().isEmpty) {
+      throw const FormatException(
+        'La respuesta del servicio no contiene una recomendacion valida.',
+      );
+    }
+    return RecomendacionModel(
+      idRecomendacion: id,
+      categoria: category,
+      titulo: title,
+      descripcion: description,
+    );
+  }
+
   /// Convierte el DTO a entidad de dominio
   Recomendacion toEntity() {
     return Recomendacion(

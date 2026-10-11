@@ -115,9 +115,65 @@ class AppConstants {
   static String get registroUsers => '$_baseUrl/users';
 
   // ==========================================
-  // ENDPOINTS DE EVALUACIONES
+  // ENDPOINTS DE EVALUACIONES (microservicio RiskEvaluation)
   // ==========================================
-  static String get evaluar => '$_baseUrl/api/v1/evaluaciones/';
+
+  /// Puerto local del microservicio RiskEvaluation.
+  static const String _riskEvaluationPort = '3002';
+
+  /// Base URL de RiskEvaluation, independiente de la de Users.
+  ///
+  /// Se define en tiempo de compilacion con la bandera
+  /// --dart-define=RISK_EVALUATION_BASE_URL=https://mi-servicio
+  static const String _riskEvaluationBaseUrl = String.fromEnvironment(
+    'RISK_EVALUATION_BASE_URL',
+  );
+
+  /// Host local de RiskEvaluation segun la plataforma.
+  ///
+  /// RiskEvaluation no comparte despliegue con Users, por lo que no se reutiliza
+  /// [_baseUrl] (que apunta al puerto de Users); solo se toma prestado el host
+  /// que corresponde al emulador de cada plataforma.
+  static String? _detectarRiskEvaluationHost() {
+    try {
+      if (Platform.isAndroid) {
+        return 'http://10.0.2.2:$_riskEvaluationPort';
+      }
+      if (Platform.isWindows ||
+          Platform.isLinux ||
+          Platform.isMacOS ||
+          Platform.isIOS) {
+        return 'http://localhost:$_riskEvaluationPort';
+      }
+    } catch (_) {
+      // Plataforma sin soporte de dart:io: se exige configuracion explicita.
+    }
+    if (kIsWeb) {
+      return 'http://localhost:$_riskEvaluationPort';
+    }
+    return null;
+  }
+
+  /// Origen del microservicio RiskEvaluation.
+  ///
+  /// No existe una URL publica de produccion confirmada para este servicio, asi
+  /// que sin configuracion explicita se lanza un error en lugar de construir
+  /// una URL incorrecta reutilizando el host de Users.
+  static String get riskEvaluationOrigin {
+    final configurada = _riskEvaluationBaseUrl.replaceAll(RegExp(r'/+$'), '');
+    if (configurada.isNotEmpty) return configurada;
+    final detectada = _detectarRiskEvaluationHost();
+    if (detectada == null) {
+      throw StateError(
+        'RISK_EVALUATION_BASE_URL no esta configurada. Compila con '
+        '--dart-define=RISK_EVALUATION_BASE_URL=https://tu-servicio',
+      );
+    }
+    return detectada;
+  }
+
+  /// Envia la evaluacion a RiskEvaluation: JSON camelCase con JWT.
+  static String get evaluar => '$riskEvaluationOrigin/risk-evaluations/';
   static String get historialEvaluaciones =>
       '$_baseUrl/api/v1/evaluaciones/historial';
 
