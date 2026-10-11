@@ -10,6 +10,7 @@ import { createAuthMiddleware } from "./presentation/middlewares/authMiddleware.
 import { createRiskEvaluationRouter } from "./presentation/routes/riskEvaluationRoutes.js";
 import { errorHandler } from "./presentation/middlewares/errorHandler.js";
 import { FakeAiPredictionClient } from "./infrastructure/clients/FakeAiPredictionClient.js";
+import { pool } from "./config/database.js";
 
 const app = express();
 
@@ -40,11 +41,24 @@ const riskEvaluationRouter = createRiskEvaluationRouter(
 
 app.use("/risk-evaluations", riskEvaluationRouter);
 
-app.get("/health", (_req, res) => {
-  res.status(200).json({
-    service: "riskEvaluation",
-    status: "OK",
-  });
+app.get("/health", async (_req, res) => {
+  try {
+    await pool.query("SELECT 1");
+
+    res.status(200).json({
+      service: "riskEvaluation",
+      status: "OK",
+      database: "OK",
+    });
+  } catch (error) {
+    console.error("ERROR MYSQL:", error);
+
+    res.status(503).json({
+      service: "riskEvaluation",
+      status: "ERROR",
+      database: "UNAVAILABLE",
+    });
+  }
 });
 
 app.use(errorHandler);

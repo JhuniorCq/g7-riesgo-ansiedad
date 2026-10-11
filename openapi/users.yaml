@@ -30,6 +30,8 @@ paths:
               code: EST-12345
               email: ana.perez@example.com
               password: "UnaClaveSegura123!"
+              school: Ingeniería
+              cycle: 5
       responses:
         "201":
           description: Usuario creado
@@ -51,6 +53,154 @@ paths:
                 $ref: "#/components/schemas/MessageError"
               example:
                 message: El email ya está registrado
+        "500":
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageError"
+    get:
+      tags:
+        - Users
+      summary: Listar todos los usuarios
+      operationId: getUsers
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de usuarios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "401":
+          description: Falta un token válido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageError"
+        "500":
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageError"
+  /users/login:
+    post:
+      tags:
+        - Users
+      summary: Iniciar sesión
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginUserRequest"
+            example:
+              email: ana.perez@example.com
+              password: "UnaClaveSegura123!"
+      responses:
+        "200":
+          description: Inicio de sesión exitoso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginUserResponse"
+        "400":
+          description: Los datos enviados no son válidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+        "401":
+          description: El correo o la contraseña no son válidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageError"
+        "500":
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageError"
+  /users/me:
+    get:
+      tags:
+        - Users
+      summary: Obtener el usuario autenticado
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Usuario autenticado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Falta un token válido o el usuario no está autenticado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageError"
+        "404":
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageError"
+        "500":
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageError"
+  /users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Obtener un usuario por su ID
+      operationId: getUserById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID entero positivo del usuario
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "200":
+          description: Usuario encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: El ID debe ser un entero positivo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+        "401":
+          description: Falta un token válido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageError"
+        "404":
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageError"
         "500":
           description: Error interno del servidor
           content:
@@ -85,6 +235,11 @@ paths:
                 status: ERROR
                 database: UNAVAILABLE
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     CreateUserRequest:
       type: object
@@ -94,6 +249,8 @@ components:
         - code
         - email
         - password
+        - school
+        - cycle
       properties:
         names:
           type: string
@@ -117,6 +274,46 @@ components:
           format: password
           writeOnly: true
           description: Contraseña del usuario. No se devuelve en la respuesta.
+        school:
+          type: string
+          minLength: 1
+          description: Escuela del usuario
+        cycle:
+          type: integer
+          minimum: 1
+          maximum: 12
+          description: Ciclo académico del usuario
+    LoginUserRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: Correo electrónico registrado
+        password:
+          type: string
+          minLength: 1
+          format: password
+          writeOnly: true
+          description: Contraseña del usuario
+    LoginUserResponse:
+      type: object
+      required:
+        - message
+        - user
+        - accessToken
+      properties:
+        message:
+          type: string
+          example: Inicio de sesión exitoso
+        user:
+          $ref: "#/components/schemas/User"
+        accessToken:
+          type: string
+          description: Token JWT para autenticar solicitudes protegidas
     User:
       type: object
       required:
@@ -125,6 +322,8 @@ components:
         - surnames
         - code
         - email
+        - school
+        - cycle
         - createdAt
       properties:
         id:
@@ -139,6 +338,10 @@ components:
         email:
           type: string
           format: email
+        school:
+          type: string
+        cycle:
+          type: integer
         createdAt:
           type: string
           format: date-time
