@@ -106,27 +106,32 @@ class _AnsiedadAppState extends State<AnsiedadApp> {
         ObtenerEvaluacionesRecientesUseCase(medicoRepository);
     final obtenerEscuelasUseCase = ObtenerEscuelasUseCase(escuelaRepository);
 
+    final evaluationVM = EvaluacionViewModel(
+      evaluarRiesgoUseCase,
+      obtenerHistorialUseCase,
+    );
+    final medicoVM = MedicoViewModel(
+      obtenerEstadisticasMedicoUseCase,
+      obtenerPacientesUseCase,
+      obtenerEvaluacionesRecientesUseCase,
+    );
+    final authVM = AuthViewModel(
+      loginUseCase,
+      registerUseCase,
+      logoutUseCase,
+      RestaurarSesionUseCase(authRepository),
+    );
+    authVM.onSessionReset = () {
+      evaluationVM.limpiarSesion();
+      medicoVM.limpiarSesion();
+    };
+    apiService.onUnauthorized = authVM.invalidarSesion;
     _providers = [
+      Provider<ApiService>.value(value: apiService),
       ChangeNotifierProvider(create: (_) => ThemeNotifier()),
-      ChangeNotifierProvider(
-        create: (_) => AuthViewModel(
-          loginUseCase,
-          registerUseCase,
-          logoutUseCase,
-          RestaurarSesionUseCase(authRepository),
-        ),
-      ),
-      ChangeNotifierProvider(
-        create: (_) =>
-            EvaluacionViewModel(evaluarRiesgoUseCase, obtenerHistorialUseCase),
-      ),
-      ChangeNotifierProvider(
-        create: (_) => MedicoViewModel(
-          obtenerEstadisticasMedicoUseCase,
-          obtenerPacientesUseCase,
-          obtenerEvaluacionesRecientesUseCase,
-        ),
-      ),
+      ChangeNotifierProvider(create: (_) => authVM, lazy: false),
+      ChangeNotifierProvider(create: (_) => evaluationVM, lazy: false),
+      ChangeNotifierProvider(create: (_) => medicoVM, lazy: false),
       ChangeNotifierProvider(
         create: (_) => EscuelaViewModel(obtenerEscuelasUseCase),
       ),

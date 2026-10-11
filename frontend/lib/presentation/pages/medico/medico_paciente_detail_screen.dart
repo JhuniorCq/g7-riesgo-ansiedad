@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../../core/app_colors.dart';
 import '../../../data/datasources/remote/api_service.dart';
 import '../../../core/constants.dart';
-import '../../../presentation/viewmodels/auth_viewmodel.dart';
 
 /// Pantalla de detalle de un paciente para el Médico
 /// Muestra la información del paciente y su historial completo de evaluaciones
@@ -38,9 +37,7 @@ class _MedicoPacienteDetailScreenState
     });
 
     try {
-      final apiService = ApiService();
-      final authVM = context.read<AuthViewModel>();
-      apiService.setToken(authVM.token);
+      final apiService = context.read<ApiService>();
 
       final response = await apiService.get(
         AppConstants.medicoPacienteDetalle(widget.userId),

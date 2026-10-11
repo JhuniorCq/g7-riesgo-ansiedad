@@ -50,9 +50,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
   Future<void> _cargarEstadisticas() async {
     try {
-      final apiService = ApiService();
-      final authVM = context.read<AuthViewModel>();
-      apiService.setToken(authVM.token);
+      final apiService = context.read<ApiService>();
       final response = await apiService.get(AppConstants.adminEstadisticas);
       setState(() {
         _estadisticas = response;
@@ -67,9 +65,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
   Future<void> _cargarUsuarios() async {
     try {
-      final apiService = ApiService();
-      final authVM = context.read<AuthViewModel>();
-      apiService.setToken(authVM.token);
+      final apiService = context.read<ApiService>();
       final response = await apiService.getList(AppConstants.adminUsuarios);
       setState(() {
         _usuarios = response;
@@ -1082,9 +1078,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     if (confirm != true) return;
 
     try {
-      final apiService = ApiService();
-      final authVM = context.read<AuthViewModel>();
-      apiService.setToken(authVM.token);
+      final apiService = context.read<ApiService>();
       await apiService.delete(
         AppConstants.adminUsuarioById(usuario['id_usuario']),
       );
@@ -1105,9 +1099,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
   Future<void> _cambiarRol(Map<String, dynamic> usuario, String nuevoRol) async {
     try {
-      final apiService = ApiService();
-      final authVM = context.read<AuthViewModel>();
-      apiService.setToken(authVM.token);
+      final apiService = context.read<ApiService>();
       await apiService.put(
         AppConstants.adminCambiarRol(usuario['id_usuario']),
         body: {'rol': nuevoRol},

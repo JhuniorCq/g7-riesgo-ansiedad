@@ -54,8 +54,10 @@ class SessionProtected extends StatelessWidget {
   final Widget child;
   const SessionProtected({super.key, required this.child});
   @override
-  Widget build(BuildContext context) =>
-      context.watch<AuthViewModel>().isAuthenticated
-      ? child
-      : const SessionGate();
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthViewModel>();
+    return auth.isAuthenticated
+        ? KeyedSubtree(key: ValueKey(auth.sessionRevision), child: child)
+        : const SessionGate();
+  }
 }

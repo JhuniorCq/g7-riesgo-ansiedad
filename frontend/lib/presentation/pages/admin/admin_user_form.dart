@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../../core/app_colors.dart';
 import '../../../data/datasources/remote/api_service.dart';
 import '../../../core/constants.dart';
-import '../../../presentation/viewmodels/auth_viewmodel.dart';
 
 /// Modal para crear o editar un usuario desde el admin.
 class AdminUserForm extends StatefulWidget {
@@ -56,9 +55,7 @@ class _AdminUserFormState extends State<AdminUserForm> {
     setState(() => _isLoading = true);
 
     try {
-      final apiService = ApiService();
-      final authVM = context.read<AuthViewModel>();
-      apiService.setToken(authVM.token);
+      final apiService = context.read<ApiService>();
 
       final body = {
         'nombre': _nombreCtrl.text.trim(),

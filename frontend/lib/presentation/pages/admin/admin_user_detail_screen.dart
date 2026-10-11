@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../../core/app_colors.dart';
 import '../../../data/datasources/remote/api_service.dart';
 import '../../../core/constants.dart';
-import '../../../presentation/viewmodels/auth_viewmodel.dart';
 import 'admin_user_form.dart';
 
 /// Pantalla de detalle de un usuario (admin) - Muestra info + evaluaciones
@@ -30,9 +29,7 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
   Future<void> _cargarDetalle() async {
     setState(() => _isLoading = true);
     try {
-      final apiService = ApiService();
-      final authVM = context.read<AuthViewModel>();
-      apiService.setToken(authVM.token);
+      final apiService = context.read<ApiService>();
       final response = await apiService.get(
         AppConstants.adminUsuarioById(widget.userId),
       );
@@ -73,9 +70,7 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
     if (confirm != true) return;
 
     try {
-      final apiService = ApiService();
-      final authVM = context.read<AuthViewModel>();
-      apiService.setToken(authVM.token);
+      final apiService = context.read<ApiService>();
       await apiService.delete(
         AppConstants.adminEvaluacionById(evaluacion['id_evaluacion']),
       );
@@ -129,9 +124,7 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
     if (confirm != true) return;
 
     try {
-      final apiService = ApiService();
-      final authVM = context.read<AuthViewModel>();
-      apiService.setToken(authVM.token);
+      final apiService = context.read<ApiService>();
       await apiService.delete(
         AppConstants.adminUsuarioById(widget.userId),
       );

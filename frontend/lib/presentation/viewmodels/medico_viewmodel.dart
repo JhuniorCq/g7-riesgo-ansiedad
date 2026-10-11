@@ -23,6 +23,7 @@ class MedicoViewModel extends ChangeNotifier {
   // ==========================================
   // ESTADOS
   // ==========================================
+  int _sessionVersion = 0;
   bool _isLoadingStats = false;
   bool _isLoadingPacientes = false;
   bool _isLoadingRecientes = false;
@@ -44,15 +45,19 @@ class MedicoViewModel extends ChangeNotifier {
   // CARGAR ESTADÍSTICAS
   // ==========================================
   Future<void> cargarEstadisticas() async {
+    final session = _sessionVersion;
     _isLoadingStats = true;
     _error = null;
     notifyListeners();
 
     try {
-      _estadisticas = await _obtenerEstadisticasUseCase();
+      final result = await _obtenerEstadisticasUseCase();
+      if (session != _sessionVersion) return;
+      _estadisticas = result;
       _isLoadingStats = false;
       notifyListeners();
     } catch (e) {
+      if (session != _sessionVersion) return;
       _error = 'Error al cargar estadísticas';
       _isLoadingStats = false;
       notifyListeners();
@@ -63,15 +68,19 @@ class MedicoViewModel extends ChangeNotifier {
   // CARGAR PACIENTES
   // ==========================================
   Future<void> cargarPacientes() async {
+    final session = _sessionVersion;
     _isLoadingPacientes = true;
     _error = null;
     notifyListeners();
 
     try {
-      _pacientes = await _obtenerPacientesUseCase();
+      final result = await _obtenerPacientesUseCase();
+      if (session != _sessionVersion) return;
+      _pacientes = result;
       _isLoadingPacientes = false;
       notifyListeners();
     } catch (e) {
+      if (session != _sessionVersion) return;
       _error = 'Error al cargar pacientes';
       _isLoadingPacientes = false;
       notifyListeners();
@@ -82,15 +91,19 @@ class MedicoViewModel extends ChangeNotifier {
   // CARGAR EVALUACIONES RECIENTES
   // ==========================================
   Future<void> cargarEvaluacionesRecientes() async {
+    final session = _sessionVersion;
     _isLoadingRecientes = true;
     _error = null;
     notifyListeners();
 
     try {
-      _evaluacionesRecientes = await _obtenerEvaluacionesRecientesUseCase();
+      final result = await _obtenerEvaluacionesRecientesUseCase();
+      if (session != _sessionVersion) return;
+      _evaluacionesRecientes = result;
       _isLoadingRecientes = false;
       notifyListeners();
     } catch (e) {
+      if (session != _sessionVersion) return;
       _error = 'Error al cargar evaluaciones recientes';
       _isLoadingRecientes = false;
       notifyListeners();
@@ -113,6 +126,18 @@ class MedicoViewModel extends ChangeNotifier {
   // ==========================================
   void clearError() {
     _error = null;
+    notifyListeners();
+  }
+
+  void limpiarSesion() {
+    _sessionVersion++;
+    _error = null;
+    _isLoadingStats = false;
+    _isLoadingPacientes = false;
+    _isLoadingRecientes = false;
+    _estadisticas = null;
+    _pacientes = [];
+    _evaluacionesRecientes = [];
     notifyListeners();
   }
 }

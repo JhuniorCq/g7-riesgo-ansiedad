@@ -7,6 +7,24 @@ import 'package:http/http.dart' as http;
 /// Esta clase reside en la capa de datos porque es un detalle
 /// de implementación de la comunicación con la API.
 class ApiService {
+  Future<void> Function()? onUnauthorized;
+  int _sessionVersion = 0;
+
+  Future<void> _checkUnauthorized(
+    http.Response response,
+    (String?, int) session,
+  ) async {
+    if (response.statusCode != 401 ||
+        session.$1 == null ||
+        session.$1 != _token ||
+        session.$2 != _sessionVersion) {
+      return;
+    }
+    // Invalidate synchronously before notifying: concurrent responses become stale.
+    setToken(null);
+    await onUnauthorized?.call();
+  }
+
   /// Candidate session verification never changes the shared active token.
   Future<Map<String, dynamic>> getWithToken(String url, String token) async {
     final response = await http
@@ -26,6 +44,7 @@ class ApiService {
   /// Establece el token JWT para autenticación
   void setToken(String? token) {
     _token = token;
+    _sessionVersion++;
   }
 
   /// Construye los headers con autenticación si hay token
@@ -39,17 +58,21 @@ class ApiService {
 
   /// Realiza una petición GET
   Future<Map<String, dynamic>> get(String url) async {
+    final session = (_token, _sessionVersion);
     final response = await http
         .get(Uri.parse(url), headers: _headers())
         .timeout(const Duration(seconds: 15));
+    await _checkUnauthorized(response, session);
     return _procesarRespuesta(response);
   }
 
   /// Realiza una petición GET que devuelve una lista
   Future<List<dynamic>> getList(String url) async {
+    final session = (_token, _sessionVersion);
     final response = await http
         .get(Uri.parse(url), headers: _headers())
         .timeout(const Duration(seconds: 15));
+    await _checkUnauthorized(response, session);
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as List<dynamic>;
     }
@@ -65,6 +88,7 @@ class ApiService {
     Map<String, dynamic>? body,
     bool withAuth = true,
   }) async {
+    final session = (withAuth ? _token : null, _sessionVersion);
     final response = await http
         .post(
           Uri.parse(url),
@@ -72,6 +96,7 @@ class ApiService {
           body: body != null ? jsonEncode(body) : null,
         )
         .timeout(const Duration(seconds: 15));
+    await _checkUnauthorized(response, session);
     return _procesarRespuesta(response);
   }
 
@@ -80,6 +105,7 @@ class ApiService {
     String url, {
     Map<String, dynamic>? body,
   }) async {
+    final session = (_token, _sessionVersion);
     final response = await http
         .put(
           Uri.parse(url),
@@ -87,14 +113,17 @@ class ApiService {
           body: body != null ? jsonEncode(body) : null,
         )
         .timeout(const Duration(seconds: 15));
+    await _checkUnauthorized(response, session);
     return _procesarRespuesta(response);
   }
 
   /// Realiza una petición DELETE
   Future<Map<String, dynamic>> delete(String url) async {
+    final session = (_token, _sessionVersion);
     final response = await http
         .delete(Uri.parse(url), headers: _headers())
         .timeout(const Duration(seconds: 15));
+    await _checkUnauthorized(response, session);
     return _procesarRespuesta(response);
   }
 

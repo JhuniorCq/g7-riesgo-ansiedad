@@ -22,6 +22,7 @@ class EvaluacionViewModel extends ChangeNotifier {
   // ==========================================
   // ESTADOS
   // ==========================================
+  int _sessionVersion = 0;
   bool _isLoading = false;
   String? _error;
   double? _probabilidad;
@@ -44,12 +45,14 @@ class EvaluacionViewModel extends ChangeNotifier {
   // EVALUAR RIESGO
   // ==========================================
   Future<bool> evaluarRiesgo(Map<String, double> variables) async {
+    final session = _sessionVersion;
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
       final result = await _evaluarRiesgoUseCase(variables);
+      if (session != _sessionVersion) return false;
 
       _probabilidad = result.resultado.probabilidadAnsiedad;
       _nivelRiesgo = result.resultado.nivelRiesgo;
@@ -61,6 +64,7 @@ class EvaluacionViewModel extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
+      if (session != _sessionVersion) return false;
       _error = e.toString().contains('Exception')
           ? e.toString()
           : 'Error de conexión con el servidor';
@@ -74,15 +78,19 @@ class EvaluacionViewModel extends ChangeNotifier {
   // OBTENER HISTORIAL
   // ==========================================
   Future<void> obtenerHistorial() async {
+    final session = _sessionVersion;
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      _historial = await _obtenerHistorialUseCase();
+      final result = await _obtenerHistorialUseCase();
+      if (session != _sessionVersion) return;
+      _historial = result;
       _isLoading = false;
       notifyListeners();
     } catch (e) {
+      if (session != _sessionVersion) return;
       _error = e.toString().contains('Exception')
           ? e.toString()
           : 'Error de conexión con el servidor';
@@ -105,6 +113,19 @@ class EvaluacionViewModel extends ChangeNotifier {
 
   void clearError() {
     _error = null;
+    notifyListeners();
+  }
+
+  void limpiarSesion() {
+    _sessionVersion++;
+    _error = null;
+    _isLoading = false;
+    _historial = [];
+    _probabilidad = null;
+    _nivelRiesgo = null;
+    _explicacion = null;
+    _recomendaciones = [];
+    _ultimoResultado = null;
     notifyListeners();
   }
 }

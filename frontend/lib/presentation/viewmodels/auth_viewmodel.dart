@@ -27,6 +27,16 @@ class AuthViewModel extends ChangeNotifier {
   String? restoreError;
   bool logoutFailed = false;
   int _operation = 0;
+  int get sessionRevision => _operation;
+  VoidCallback? onSessionReset;
+  Future<bool>? _closing;
+  bool invalidatedBy401 = false;
+
+  Future<void> invalidarSesion() async {
+    if (!_isAuthenticated) return;
+    invalidatedBy401 = true;
+    await logout();
+  }
 
   Future<void> restaurarSesion() async {
     if (isRestoring || logoutFailed || _isLoading) return;
@@ -37,6 +47,10 @@ class AuthViewModel extends ChangeNotifier {
     try {
       final result = await _restore?.call();
       if (operation != _operation) return;
+      if (_token != result?.token ||
+          _usuario?.idUsuario != result?.usuario.idUsuario) {
+        onSessionReset?.call();
+      }
       _token = result?.token;
       _usuario = result?.usuario;
       _isAuthenticated = result != null;
@@ -78,6 +92,7 @@ class AuthViewModel extends ChangeNotifier {
     if (_isLoading) return false;
     final operation = ++_operation;
     isRestoring = false;
+    onSessionReset?.call();
     restoreError = null;
     _token = null;
     _usuario = null;
@@ -97,6 +112,7 @@ class AuthViewModel extends ChangeNotifier {
       _usuario = result.usuario;
       _isAuthenticated = true;
       logoutFailed = false;
+      invalidatedBy401 = false;
       return true;
     } catch (e) {
       if (operation != _operation) return false;
@@ -158,8 +174,18 @@ class AuthViewModel extends ChangeNotifier {
   // ==========================================
   // CERRAR SESIÓN
   // ==========================================
-  Future<bool> logout() async {
+  Future<bool> logout() {
+    final pending = _closing;
+    if (pending != null) return pending;
+    final closing = _cerrarSesion();
+    _closing = closing;
+    closing.whenComplete(() => _closing = null);
+    return closing;
+  }
+
+  Future<bool> _cerrarSesion() async {
     ++_operation;
+    onSessionReset?.call();
     isRestoring = false;
     restoreError = null;
     _token = null;

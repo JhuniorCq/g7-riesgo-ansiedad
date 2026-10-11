@@ -5,7 +5,6 @@ import '../../../core/app_colors.dart';
 import '../../../core/app_icons.dart';
 import '../../../data/datasources/remote/api_service.dart';
 import '../../../core/constants.dart';
-import '../../../presentation/viewmodels/auth_viewmodel.dart';
 import 'admin_user_form.dart';
 import 'admin_user_detail_screen.dart';
 
@@ -40,9 +39,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   Future<void> _cargarUsuarios() async {
     setState(() => _isLoading = true);
     try {
-      final apiService = ApiService();
-      final authVM = context.read<AuthViewModel>();
-      apiService.setToken(authVM.token);
+      final apiService = context.read<ApiService>();
       final response = await apiService.getList(AppConstants.adminUsuarios);
       setState(() {
         _usuarios = response;
@@ -88,9 +85,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     if (confirm != true) return;
 
     try {
-      final apiService = ApiService();
-      final authVM = context.read<AuthViewModel>();
-      apiService.setToken(authVM.token);
+      final apiService = context.read<ApiService>();
       await apiService.delete(
         AppConstants.adminUsuarioById(usuario['id_usuario']),
       );
@@ -111,9 +106,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
   Future<void> _cambiarRol(Map<String, dynamic> usuario, String nuevoRol) async {
     try {
-      final apiService = ApiService();
-      final authVM = context.read<AuthViewModel>();
-      apiService.setToken(authVM.token);
+      final apiService = context.read<ApiService>();
       await apiService.put(
         AppConstants.adminCambiarRol(usuario['id_usuario']),
         body: {'rol': nuevoRol},
