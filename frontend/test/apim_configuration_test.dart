@@ -5,6 +5,7 @@ import 'package:http/testing.dart';
 import 'package:ansiedad_ml_app/core/api_gateway_config.dart';
 import 'package:ansiedad_ml_app/core/constants.dart';
 import 'package:ansiedad_ml_app/data/datasources/remote/api_service.dart';
+import 'package:ansiedad_ml_app/data/datasources/remote/auth_remote_datasource.dart';
 
 const gateway = ApiGatewayConfig(
   baseUrl: 'https://apim-g7-riesgo-ansiedad.azure-api.net/',
@@ -202,4 +203,68 @@ void main() {
       );
     },
   );
+
+  test('500 captura request-id de APIM y toString lo referencia', () async {
+    final api = ApiService(gateway: gateway);
+    await http.runWithClient(
+      () async {
+        await expectLater(
+          api.post(gateway.evaluation, expectedStatus: 201),
+          throwsA(
+            isA<ApiException>()
+                .having((e) => e.statusCode, 'statusCode', 500)
+                .having((e) => e.apimRequestId, 'apimRequestId',
+                    'test-req-500')
+                .having((e) => e.apimTraceLocation, 'apimTraceLocation',
+                    'https://trace/500'),
+          ),
+        );
+      },
+      () => MockClient((_) async => http.Response(
+            '{"message":"Error interno del servidor"}',
+            500,
+            headers: {
+              'ocp-apim-request-id': 'test-req-500',
+              'ocp-apim-trace-location': 'https://trace/500',
+            },
+          )),
+    );
+  });
+
+  test('registro con 500 expone referencia APIM sin filtrar credenciales',
+      () async {
+    final api = ApiService(gateway: gateway);
+    final ds = AuthRemoteDataSource(api);
+    await http.runWithClient(
+      () async {
+        await expectLater(
+          ds.registrar(
+            nombres: 'Ana',
+            apellidos: 'Perez',
+            codigo: 'C001',
+            correo: 'ana@example.com',
+            contrasena: 'pw-secreto',
+            escuela: 'Ingenieria',
+            ciclo: 3,
+          ),
+          throwsA(
+            isA<Exception>().having(
+              (e) => e.toString(),
+              'mensaje',
+              allOf(
+                contains('no está disponible'),
+                contains('ref. APIM test-req-500'),
+              ),
+            ),
+          ),
+        );
+      },
+      () => MockClient((_) async => http.Response(
+            '{"message":"Error interno del servidor"}',
+            500,
+            headers: {'ocp-apim-request-id': 'test-req-500'},
+          )),
+    );
+  });
+
 }

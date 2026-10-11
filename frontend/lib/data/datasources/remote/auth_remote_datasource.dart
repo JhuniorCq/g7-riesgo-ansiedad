@@ -107,6 +107,18 @@ class AuthRemoteDataSource {
       if (e.statusCode == 409) {
         throw Exception(_mensajeDuplicado(e));
       }
+      if (e.statusCode >= 500) {
+        // Un 5xx puede venir del backend o de APIM. Si trajo el request-id de
+        // APIM, el fallo paso por el gateway; se expone como referencia para
+        // correlacionar con sus registros. El request-id no es credencial.
+        final ref = e.apimRequestId;
+        throw Exception(
+          ref == null
+              ? 'El servicio no está disponible en este momento. Inténtalo más tarde.'
+              : 'El servicio no está disponible en este momento '
+                    '(ref. APIM $ref). Inténtalo más tarde.',
+        );
+      }
       rethrow;
     } on TimeoutException {
       throw Exception('El servidor tardó en responder. Inténtalo de nuevo.');

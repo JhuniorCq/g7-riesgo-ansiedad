@@ -60,3 +60,29 @@ flutter test --no-pub test/apim_configuration_test.dart --dart-define=APIM_BASE_
 ```
 
 Las pruebas usan clientes simulados y claves ficticias. No invocan Azure ni Gemini.
+
+## Configuración con .env (Git Bash)
+
+Coloca `frontend/.env` (junto a este archivo) con:
+
+    APIM_BASE_URL=https://apim-g7-riesgo-ansiedad.azure-api.net
+    APIM_SUBSCRIPTION_KEY=<clave entregada por el equipo>
+
+Usa `frontend/.env.example` como plantilla. El archivo `.env` **no se sube al
+repositorio** (`.gitignore`), por lo que cada miembro coloca su propia clave.
+
+Ejecuta desde Git Bash, en la carpeta `frontend/`:
+
+    bash run-apim.sh
+
+o:
+
+    ./run-apim.sh
+
+El script lee `.env`, valida las dos variables y lanza:
+
+    flutter run -d windows --dart-define=APIM_BASE_URL=... --dart-define=APIM_SUBSCRIPTION_KEY=...
+
+sin mostrar la clave. Recuerda: `--dart-define` **incorpora la clave al
+ejecutable** del cliente, así que esta configuración es **solo para pruebas
+controladas**, no para producción.

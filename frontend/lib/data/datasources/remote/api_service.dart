@@ -10,8 +10,25 @@ import '../../../../core/api_gateway_config.dart';
 /// de implementación de la comunicación con la API.
 class ApiService {
   final ApiGatewayConfig _gateway;
-  ApiService({ApiGatewayConfig? gateway})
-    : _gateway = gateway ?? AppConstants.gateway;
+
+  /// One request budget, including response body. No automatic POST retries.
+  /// 60 s leaves margin above the observed 24.84 s remote registration.
+  static const defaultTimeoutSeconds = int.fromEnvironment(
+    'HTTP_TIMEOUT_SECONDS',
+    defaultValue: 60,
+  );
+  final Duration requestTimeout;
+  ApiService({ApiGatewayConfig? gateway, Duration? requestTimeout})
+    : _gateway = gateway ?? AppConstants.gateway,
+      requestTimeout =
+          requestTimeout ?? const Duration(seconds: defaultTimeoutSeconds) {
+    if (this.requestTimeout <= Duration.zero ||
+        this.requestTimeout > const Duration(minutes: 3)) {
+      throw ArgumentError(
+        'HTTP timeout must be greater than zero and at most 180 seconds.',
+      );
+    }
+  }
   Future<void> Function()? onUnauthorized;
   int _sessionVersion = 0;
 
@@ -34,7 +51,7 @@ class ApiService {
   Future<Map<String, dynamic>> getWithToken(String url, String token) async {
     final response = await http
         .get(Uri.parse(url), headers: _headers(url, candidateToken: token))
-        .timeout(const Duration(seconds: 15));
+        .timeout(requestTimeout);
     return _procesarRespuesta(response);
   }
 
@@ -68,7 +85,7 @@ class ApiService {
     final session = (_token, _sessionVersion);
     final response = await http
         .get(Uri.parse(url), headers: _headers(url))
-        .timeout(const Duration(seconds: 15));
+        .timeout(requestTimeout);
     await _checkUnauthorized(response, session);
     return _procesarRespuesta(response);
   }
@@ -78,7 +95,7 @@ class ApiService {
     final session = (_token, _sessionVersion);
     final response = await http
         .get(Uri.parse(url), headers: _headers(url))
-        .timeout(const Duration(seconds: 15));
+        .timeout(requestTimeout);
     await _checkUnauthorized(response, session);
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as List<dynamic>;
@@ -103,7 +120,7 @@ class ApiService {
           headers: _headers(url, withAuth: withAuth),
           body: body != null ? jsonEncode(body) : null,
         )
-        .timeout(const Duration(seconds: 15));
+        .timeout(requestTimeout);
     await _checkUnauthorized(response, session);
     if (expectedStatus != null &&
         response.statusCode >= 200 &&
@@ -126,7 +143,7 @@ class ApiService {
           headers: _headers(url),
           body: body != null ? jsonEncode(body) : null,
         )
-        .timeout(const Duration(seconds: 15));
+        .timeout(requestTimeout);
     await _checkUnauthorized(response, session);
     return _procesarRespuesta(response);
   }
@@ -136,7 +153,7 @@ class ApiService {
     final session = (_token, _sessionVersion);
     final response = await http
         .delete(Uri.parse(url), headers: _headers(url))
-        .timeout(const Duration(seconds: 15));
+        .timeout(requestTimeout);
     await _checkUnauthorized(response, session);
     return _procesarRespuesta(response);
   }
@@ -153,6 +170,10 @@ class ApiService {
       statusCode: response.statusCode,
       mensaje: _extraerMensaje(response.body),
       cuerpo: response.body,
+      apimRequestId:
+          response.headers['ocp-apim-request-id'] ??
+          response.headers['x-ms-request-id'],
+      apimTraceLocation: response.headers['ocp-apim-trace-location'],
     );
   }
 
@@ -179,8 +200,24 @@ class ApiException implements Exception {
   /// Cuerpo crudo de la respuesta HTTP (opcional, para errores).
   final String? cuerpo;
 
-  ApiException({required this.statusCode, required this.mensaje, this.cuerpo});
+  /// Identificador de peticion de Azure API Management si el gateway lo
+  /// incluyo en la respuesta. Sirve para correlacionar el fallo con los
+  /// registros de APIM. No es una credencial.
+  final String? apimRequestId;
+
+  /// Ubicacion de la traza de APIM si esta disponible. No es una credencial.
+  final String? apimTraceLocation;
+
+  ApiException({
+    required this.statusCode,
+    required this.mensaje,
+    this.cuerpo,
+    this.apimRequestId,
+    this.apimTraceLocation,
+  });
 
   @override
-  String toString() => 'ApiException($statusCode): $mensaje';
+  String toString() => apimRequestId == null
+      ? 'ApiException($statusCode): $mensaje'
+      : 'ApiException($statusCode): $mensaje [APIM $apimRequestId]';
 }
