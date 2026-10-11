@@ -3,6 +3,7 @@ import '../../../domain/entities/usuario.dart';
 import '../../../domain/usecases/login_usecase.dart';
 import '../../../domain/usecases/register_usecase.dart';
 import '../../../domain/usecases/logout_usecase.dart';
+import '../../../domain/usecases/restaurar_sesion_usecase.dart';
 
 /// ViewModel encargado de la autenticación (Login y Registro).
 ///
@@ -14,7 +15,43 @@ class AuthViewModel extends ChangeNotifier {
   final RegisterUseCase _registerUseCase;
   final LogoutUseCase _logoutUseCase;
 
-  AuthViewModel(this._loginUseCase, this._registerUseCase, this._logoutUseCase);
+  final RestaurarSesionUseCase? _restore;
+  AuthViewModel(
+    this._loginUseCase,
+    this._registerUseCase,
+    this._logoutUseCase, [
+    this._restore,
+  ]);
+  bool isRestoring = false;
+  bool sessionChecked = false;
+  String? restoreError;
+  bool logoutFailed = false;
+  int _operation = 0;
+
+  Future<void> restaurarSesion() async {
+    if (isRestoring || logoutFailed || _isLoading) return;
+    final operation = ++_operation;
+    isRestoring = true;
+    restoreError = null;
+    notifyListeners();
+    try {
+      final result = await _restore?.call();
+      if (operation != _operation) return;
+      _token = result?.token;
+      _usuario = result?.usuario;
+      _isAuthenticated = result != null;
+    } catch (_) {
+      if (operation != _operation) return;
+      restoreError =
+          'No se pudo comprobar la sesión. Verifica la conexión o el almacenamiento y reintenta.';
+    } finally {
+      if (operation == _operation) {
+        isRestoring = false;
+        sessionChecked = true;
+        notifyListeners();
+      }
+    }
+  }
 
   // ==========================================
   // ESTADOS
@@ -39,6 +76,9 @@ class AuthViewModel extends ChangeNotifier {
   // ==========================================
   Future<bool> login(String correo, String contrasena) async {
     if (_isLoading) return false;
+    final operation = ++_operation;
+    isRestoring = false;
+    restoreError = null;
     _token = null;
     _usuario = null;
     _isAuthenticated = false;
@@ -52,11 +92,14 @@ class AuthViewModel extends ChangeNotifier {
         contrasena: contrasena,
       );
 
+      if (operation != _operation) return false;
       _token = result.token;
       _usuario = result.usuario;
       _isAuthenticated = true;
+      logoutFailed = false;
       return true;
     } catch (e) {
+      if (operation != _operation) return false;
       _token = null;
       _usuario = null;
       _isAuthenticated = false;
@@ -65,8 +108,10 @@ class AuthViewModel extends ChangeNotifier {
           : 'No se pudo iniciar sesión. Inténtalo de nuevo.';
       return false;
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (operation == _operation) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -113,12 +158,30 @@ class AuthViewModel extends ChangeNotifier {
   // ==========================================
   // CERRAR SESIÓN
   // ==========================================
-  Future<void> logout() async {
-    await _logoutUseCase();
+  Future<bool> logout() async {
+    ++_operation;
+    isRestoring = false;
+    restoreError = null;
     _token = null;
     _isAuthenticated = false;
     _usuario = null;
+    _isLoading = true;
     notifyListeners();
+    try {
+      await _logoutUseCase();
+      logoutFailed = false;
+      _error = null;
+      return true;
+    } catch (_) {
+      logoutFailed = true;
+      _error =
+          'No se pudo borrar la sesión guardada. Reintenta cerrar sesión antes de salir.';
+      return false;
+    } finally {
+      _isLoading = false;
+      sessionChecked = true;
+      notifyListeners();
+    }
   }
 
   // ==========================================

@@ -7,6 +7,20 @@ import 'package:http/http.dart' as http;
 /// Esta clase reside en la capa de datos porque es un detalle
 /// de implementación de la comunicación con la API.
 class ApiService {
+  /// Candidate session verification never changes the shared active token.
+  Future<Map<String, dynamic>> getWithToken(String url, String token) async {
+    final response = await http
+        .get(
+          Uri.parse(url),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        )
+        .timeout(const Duration(seconds: 15));
+    return _procesarRespuesta(response);
+  }
+
   String? _token;
 
   /// Establece el token JWT para autenticación
@@ -118,14 +132,11 @@ class ApiService {
 class ApiException implements Exception {
   final int statusCode;
   final String mensaje;
+
   /// Cuerpo crudo de la respuesta HTTP (opcional, para errores).
   final String? cuerpo;
 
-  ApiException({
-    required this.statusCode,
-    required this.mensaje,
-    this.cuerpo,
-  });
+  ApiException({required this.statusCode, required this.mensaje, this.cuerpo});
 
   @override
   String toString() => 'ApiException($statusCode): $mensaje';

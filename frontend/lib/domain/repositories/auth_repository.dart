@@ -5,6 +5,8 @@ import '../entities/usuario.dart';
 /// Define el contrato para operaciones de autenticación sin depender
 /// de detalles de implementación (API, almacenamiento local, etc.).
 abstract class AuthRepository {
+  Future<({String token, Usuario usuario})?> restaurarSesion();
+
   /// Autentica un usuario con correo y contraseña.
   /// Retorna el token JWT y los datos del usuario si es exitoso.
   Future<({String token, Usuario usuario})> login({

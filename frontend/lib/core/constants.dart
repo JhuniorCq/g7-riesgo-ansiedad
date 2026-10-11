@@ -102,6 +102,10 @@ class AppConstants {
     return '${base.replaceAll(RegExp(r'/+$'), '')}/users/login';
   }
 
+  static String get usersOrigin =>
+      login.substring(0, login.length - '/users/login'.length);
+  static String get usersMe => '$usersOrigin/users/me';
+
   // ==========================================
   // ENDPOINT DE REGISTRO (MICROSERVICIO USERS)
   // ==========================================

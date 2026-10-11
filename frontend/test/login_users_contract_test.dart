@@ -1,3 +1,4 @@
+import 'fake_session_store.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -66,7 +67,10 @@ class _FakeApi extends ApiService {
 }
 
 AuthViewModel _vm(_FakeApi api) {
-  final repository = AuthRepositoryImpl(AuthRemoteDataSource(api));
+  final repository = AuthRepositoryImpl(
+    AuthRemoteDataSource(api),
+    FakeSessionStore(),
+  );
   return AuthViewModel(
     LoginUseCase(repository),
     RegisterUseCase(repository),
@@ -80,9 +84,15 @@ void main() {
     () async {
       final api = ApiService();
       final vm = AuthViewModel(
-        LoginUseCase(AuthRepositoryImpl(AuthRemoteDataSource(api))),
-        RegisterUseCase(AuthRepositoryImpl(AuthRemoteDataSource(api))),
-        LogoutUseCase(AuthRepositoryImpl(AuthRemoteDataSource(api))),
+        LoginUseCase(
+          AuthRepositoryImpl(AuthRemoteDataSource(api), FakeSessionStore()),
+        ),
+        RegisterUseCase(
+          AuthRepositoryImpl(AuthRemoteDataSource(api), FakeSessionStore()),
+        ),
+        LogoutUseCase(
+          AuthRepositoryImpl(AuthRemoteDataSource(api), FakeSessionStore()),
+        ),
       );
       final authorizationPresent = <bool>[];
       await http.runWithClient(

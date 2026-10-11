@@ -21,6 +21,8 @@ import 'package:ansiedad_ml_app/presentation/viewmodels/escuela_viewmodel.dart';
 /// llamadas de registro, guarda los parámetros enviados y permite simular
 /// errores y envíos lentos.
 class _AuthRepositoryPrueba implements AuthRepository {
+  @override
+  Future<({String token, Usuario usuario})?> restaurarSesion() async => null;
   bool registroLlamado = false;
   int registroLlamas = 0;
   ({

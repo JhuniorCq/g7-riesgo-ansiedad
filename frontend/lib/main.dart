@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:provider/single_child_widget.dart';
+import 'domain/services/session_store.dart';
+import 'data/datasources/local/secure_session_store.dart';
+import 'domain/usecases/restaurar_sesion_usecase.dart';
+import 'presentation/pages/auth/session_gate.dart';
 
 // Core
 import 'core/app_colors.dart';
@@ -50,11 +55,19 @@ void main() async {
   runApp(const AnsiedadApp());
 }
 
-class AnsiedadApp extends StatelessWidget {
-  const AnsiedadApp({super.key});
+class AnsiedadApp extends StatefulWidget {
+  final SessionStore? sessionStore;
+  const AnsiedadApp({super.key, this.sessionStore});
+  @override
+  State<AnsiedadApp> createState() => _AnsiedadAppState();
+}
+
+class _AnsiedadAppState extends State<AnsiedadApp> {
+  late final List<SingleChildWidget> _providers;
 
   @override
-  Widget build(BuildContext context) {
+  void initState() {
+    super.initState();
     // ==========================================
     // INYECCIÓN DE DEPENDENCIAS (Clean Architecture)
     // ==========================================
@@ -67,7 +80,10 @@ class AnsiedadApp extends StatelessWidget {
     final escuelaLocalDataSource = EscuelaLocalDataSource();
 
     // Repository Layer
-    final authRepository = AuthRepositoryImpl(authRemoteDataSource);
+    final authRepository = AuthRepositoryImpl(
+      authRemoteDataSource,
+      widget.sessionStore ?? const SecureSessionStore(),
+    );
     final evaluacionRepository = EvaluacionRepositoryImpl(
       evaluacionRemoteDataSource,
     );
@@ -90,85 +106,97 @@ class AnsiedadApp extends StatelessWidget {
         ObtenerEvaluacionesRecientesUseCase(medicoRepository);
     final obtenerEscuelasUseCase = ObtenerEscuelasUseCase(escuelaRepository);
 
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => ThemeNotifier()),
-        ChangeNotifierProvider(
-          create: (_) =>
-              AuthViewModel(loginUseCase, registerUseCase, logoutUseCase),
+    _providers = [
+      ChangeNotifierProvider(create: (_) => ThemeNotifier()),
+      ChangeNotifierProvider(
+        create: (_) => AuthViewModel(
+          loginUseCase,
+          registerUseCase,
+          logoutUseCase,
+          RestaurarSesionUseCase(authRepository),
         ),
-        ChangeNotifierProvider(
-          create: (_) => EvaluacionViewModel(
-            evaluarRiesgoUseCase,
-            obtenerHistorialUseCase,
-          ),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => MedicoViewModel(
-            obtenerEstadisticasMedicoUseCase,
-            obtenerPacientesUseCase,
-            obtenerEvaluacionesRecientesUseCase,
-          ),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => EscuelaViewModel(obtenerEscuelasUseCase),
-        ),
-      ],
-      child: Consumer<ThemeNotifier>(
-        builder: (context, themeNotifier, _) {
-          return MaterialApp(
-            title: 'Evaluación de Riesgo',
-            debugShowCheckedModeBanner: false,
-            themeMode: themeNotifier.themeMode,
-            theme: ThemeData(
-              brightness: Brightness.light,
-              colorScheme: const ColorScheme.light(
-                primary: Color(0xFF6366F1),
-                secondary: Color(0xFF6366F1),
-                surface: Colors.white,
-              ),
-              useMaterial3: true,
-              appBarTheme: const AppBarTheme(
-                centerTitle: true,
-                elevation: 1,
-                backgroundColor: Colors.white,
-                foregroundColor: Color(0xFF1E293B),
-              ),
-              scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-              extensions: [AppColors.light],
-            ),
-            darkTheme: ThemeData(
-              brightness: Brightness.dark,
-              colorScheme: const ColorScheme.dark(
-                primary: Color(0xFF818CF8),
-                secondary: Color(0xFF818CF8),
-                surface: Color(0xFF1E293B),
-              ),
-              useMaterial3: true,
-              appBarTheme: const AppBarTheme(
-                centerTitle: true,
-                elevation: 0,
-                backgroundColor: Color(0xFF0F172A),
-                foregroundColor: Color(0xFFF1F5F9),
-              ),
-              scaffoldBackgroundColor: const Color(0xFF0F172A),
-              extensions: [AppColors.dark],
-            ),
-            initialRoute: '/onboarding',
-            routes: {
-              '/onboarding': (context) => const OnboardingScreen(),
-              '/login': (context) => const LoginScreen(),
-              '/home': (context) => const HomeScreen(),
-              '/admin-home': (context) => const AdminHomeScreen(),
-              '/medico-home': (context) => const MedicoHomeScreen(),
-              '/evaluacion': (context) => const EvaluacionScreen(),
-              '/resultado': (context) => const ResultadoScreen(),
-              '/historial': (context) => const HistorialScreen(),
-              '/perfil': (context) => const PerfilScreen(),
-            },
-          );
-        },
       ),
-    );
+      ChangeNotifierProvider(
+        create: (_) =>
+            EvaluacionViewModel(evaluarRiesgoUseCase, obtenerHistorialUseCase),
+      ),
+      ChangeNotifierProvider(
+        create: (_) => MedicoViewModel(
+          obtenerEstadisticasMedicoUseCase,
+          obtenerPacientesUseCase,
+          obtenerEvaluacionesRecientesUseCase,
+        ),
+      ),
+      ChangeNotifierProvider(
+        create: (_) => EscuelaViewModel(obtenerEscuelasUseCase),
+      ),
+    ];
   }
+
+  @override
+  Widget build(BuildContext context) => MultiProvider(
+    providers: _providers,
+    child: Consumer<ThemeNotifier>(
+      builder: (context, themeNotifier, _) {
+        return MaterialApp(
+          title: 'Evaluación de Riesgo',
+          debugShowCheckedModeBanner: false,
+          themeMode: themeNotifier.themeMode,
+          theme: ThemeData(
+            brightness: Brightness.light,
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF6366F1),
+              secondary: Color(0xFF6366F1),
+              surface: Colors.white,
+            ),
+            useMaterial3: true,
+            appBarTheme: const AppBarTheme(
+              centerTitle: true,
+              elevation: 1,
+              backgroundColor: Colors.white,
+              foregroundColor: Color(0xFF1E293B),
+            ),
+            scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+            extensions: [AppColors.light],
+          ),
+          darkTheme: ThemeData(
+            brightness: Brightness.dark,
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFF818CF8),
+              secondary: Color(0xFF818CF8),
+              surface: Color(0xFF1E293B),
+            ),
+            useMaterial3: true,
+            appBarTheme: const AppBarTheme(
+              centerTitle: true,
+              elevation: 0,
+              backgroundColor: Color(0xFF0F172A),
+              foregroundColor: Color(0xFFF1F5F9),
+            ),
+            scaffoldBackgroundColor: const Color(0xFF0F172A),
+            extensions: [AppColors.dark],
+          ),
+          initialRoute: '/session',
+          routes: {
+            '/session': (_) => const SessionGate(),
+            '/onboarding': (context) => const OnboardingScreen(),
+            '/login': (context) => const LoginScreen(),
+            '/home': (context) => const SessionProtected(child: HomeScreen()),
+            '/admin-home': (context) =>
+                const SessionProtected(child: AdminHomeScreen()),
+            '/medico-home': (context) =>
+                const SessionProtected(child: MedicoHomeScreen()),
+            '/evaluacion': (context) =>
+                const SessionProtected(child: EvaluacionScreen()),
+            '/resultado': (context) =>
+                const SessionProtected(child: ResultadoScreen()),
+            '/historial': (context) =>
+                const SessionProtected(child: HistorialScreen()),
+            '/perfil': (context) =>
+                const SessionProtected(child: PerfilScreen()),
+          },
+        );
+      },
+    ),
+  );
 }

@@ -14,16 +14,22 @@ class AuthRemoteDataSource {
   final ApiService _apiService;
 
   AuthRemoteDataSource(this._apiService);
+  void setSessionToken(String? token) => _apiService.setToken(token);
+  Future<UsuarioModel> getMe(String token, {String? url}) async =>
+      UsuarioModel.fromJson(
+        await _apiService.getWithToken(url ?? AppConstants.usersMe, token),
+      );
 
   /// Inicia sesión y retorna el token y el usuario.
   Future<({String token, UsuarioModel usuario})> login({
     required String correo,
     required String contrasena,
+    String? url,
   }) async {
     _apiService.setToken(null);
     try {
       final response = await _apiService.post(
-        AppConstants.login,
+        url ?? AppConstants.login,
         body: {'email': correo.trim(), 'password': contrasena},
         withAuth: false,
       );
@@ -35,8 +41,7 @@ class AuthRemoteDataSource {
         throw const FormatException('Contrato de login inválido');
       }
       final usuario = UsuarioModel.fromJson(usuarioJson);
-      // Publicar el token únicamente después de validar todo el usuario.
-      _apiService.setToken(token);
+      // El repositorio publica el token después de confirmar la escritura segura.
       return (token: token, usuario: usuario);
     } on ApiException catch (e) {
       if (e.statusCode == 401) {

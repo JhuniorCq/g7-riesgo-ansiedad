@@ -1,3 +1,4 @@
+import 'fake_session_store.dart';
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -32,7 +33,9 @@ class _ApiServicePrueba extends ApiService {
 
 /// Construye el UseCase de registro sobre el ApiService falso.
 RegisterUseCase _crearUseCase(_ApiServicePrueba api) {
-  return RegisterUseCase(AuthRepositoryImpl(AuthRemoteDataSource(api)));
+  return RegisterUseCase(
+    AuthRepositoryImpl(AuthRemoteDataSource(api), FakeSessionStore()),
+  );
 }
 
 /// Dispara el registro con los datos de muestra del contrato Users.
@@ -55,18 +58,15 @@ void main() {
 
     expect(api.bodyCapturado, isNotNull);
     expect(api.bodyCapturado!.length, 7);
-    expect(
-      api.bodyCapturado!.keys.toSet(),
-      <String>{
-        'names',
-        'surnames',
-        'code',
-        'email',
-        'password',
-        'school',
-        'cycle',
-      },
-    );
+    expect(api.bodyCapturado!.keys.toSet(), <String>{
+      'names',
+      'surnames',
+      'code',
+      'email',
+      'password',
+      'school',
+      'cycle',
+    });
     expect(api.bodyCapturado!['names'], 'Juan');
     expect(api.bodyCapturado!['surnames'], 'Pérez');
     expect(api.bodyCapturado!['email'], 'juan@example.com');
@@ -110,7 +110,8 @@ void main() {
     api.errorAInsertar = ApiException(
       statusCode: 400,
       mensaje: 'Error desconocido',
-      cuerpo: '{"errors": [{"field": "email", "message": "Email inválido"}, '
+      cuerpo:
+          '{"errors": [{"field": "email", "message": "Email inválido"}, '
           '{"field": "code", "message": "Código inválido"}]}',
     );
 

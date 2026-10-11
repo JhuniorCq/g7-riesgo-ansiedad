@@ -55,13 +55,13 @@ class PerfilScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  correo,
-                  style: TextStyle(color: colors.textSecondary),
-                ),
+                Text(correo, style: TextStyle(color: colors.textSecondary)),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: _getRolColor(rol).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -219,12 +219,17 @@ class PerfilScreen extends StatelessWidget {
                       size: 18,
                       color: colors.iconMuted,
                     ),
-                    onTap: () {
-                      authVM.logout();
-                      Navigator.pushNamedAndRemoveUntil(
-                        context, '/login', (route) => false,
-                      );
-                    },
+                    onTap: authVM.isLoading
+                        ? null
+                        : () async {
+                            final navigator = Navigator.of(context);
+                            final success = await authVM.logout();
+                            if (!navigator.mounted) return;
+                            navigator.pushNamedAndRemoveUntil(
+                              success ? '/login' : '/session',
+                              (route) => false,
+                            );
+                          },
                   ),
                 ),
               ],
@@ -273,10 +278,7 @@ class PerfilScreen extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: colors.textSecondary,
-                  ),
+                  style: TextStyle(fontSize: 12, color: colors.textSecondary),
                 ),
                 const SizedBox(height: 2),
                 Text(

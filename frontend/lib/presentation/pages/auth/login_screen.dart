@@ -75,7 +75,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                            color: const Color(
+                              0xFF6366F1,
+                            ).withValues(alpha: 0.3),
                             blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),
@@ -268,7 +270,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               backgroundColor: const Color(0xFF6366F1),
                               foregroundColor: Colors.white,
                               elevation: 8,
-                              shadowColor: const Color(0xFF6366F1).withValues(alpha: 0.4),
+                              shadowColor: const Color(
+                                0xFF6366F1,
+                              ).withValues(alpha: 0.4),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(30),
                               ),
@@ -329,6 +333,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                     const SizedBox(height: 24),
+                    TextButton(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/onboarding'),
+                      child: const Text('Conocer la aplicación'),
+                    ),
                   ],
                 ),
               ),
