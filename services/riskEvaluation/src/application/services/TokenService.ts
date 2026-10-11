@@ -3,6 +3,5 @@ export interface AccessTokenPayload {
 }
 
 export interface TokenService {
-  generateAccessToken(userId: number): string;
   verifyAccessToken(token: string): AccessTokenPayload;
 }
