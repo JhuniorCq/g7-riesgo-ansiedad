@@ -47,7 +47,10 @@ export class LoginUser {
 
     const userId = user.getId();
 
-    const accessToken = this.tokenService.generateAccessToken(userId!);
+    const accessToken = this.tokenService.generateAccessToken(
+      userId!,
+      user.getRole(),
+    );
 
     return {
       user,

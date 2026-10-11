@@ -1,4 +1,4 @@
-import { User } from "../../domain/entities/User.js";
+import { User, UserRole } from "../../domain/entities/User.js";
 
 export interface UserResponseDTO {
   id: number;
@@ -8,6 +8,7 @@ export interface UserResponseDTO {
   email: string;
   school: string;
   cycle: number;
+  role: UserRole;
   createdAt: Date;
 }
 
@@ -20,6 +21,7 @@ export const toUserResponseDTO = (user: User): UserResponseDTO => {
     email: user.getEmail(),
     school: user.getSchool(),
     cycle: user.getCycle(),
+    role: user.getRole(),
     createdAt: user.getCreatedAt(),
   };
 };

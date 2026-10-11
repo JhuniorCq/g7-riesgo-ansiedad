@@ -49,6 +49,7 @@ export class CreateUser {
       password: hashedPassword,
       school: input.school,
       cycle: input.cycle,
+      role: "ESTUDIANTE",
       createdAt: new Date(),
     });
 

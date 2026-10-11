@@ -1,3 +1,5 @@
+export type UserRole = "ESTUDIANTE" | "PERSONAL_UNAYOE" | "ADMINISTRADOR";
+
 export interface UserProps {
   id?: number;
   names: string;
@@ -7,6 +9,7 @@ export interface UserProps {
   password: string;
   school: string;
   cycle: number;
+  role: UserRole;
   createdAt: Date;
 }
 
@@ -19,6 +22,7 @@ export class User {
   private password: string;
   private school: string;
   private cycle: number;
+  private role: UserRole;
   private createdAt: Date;
 
   constructor(props: UserProps) {
@@ -32,6 +36,7 @@ export class User {
     this.password = props.password;
     this.school = props.school;
     this.cycle = props.cycle;
+    this.role = props.role;
     this.createdAt = props.createdAt;
   }
 
@@ -75,6 +80,10 @@ export class User {
 
   getCycle(): number {
     return this.cycle;
+  }
+
+  getRole(): UserRole {
+    return this.role;
   }
 
   getCreatedAt(): Date {

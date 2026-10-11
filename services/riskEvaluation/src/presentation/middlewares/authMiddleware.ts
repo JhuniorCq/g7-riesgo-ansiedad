@@ -27,6 +27,7 @@ export const createAuthMiddleware = (tokenService: TokenService) => {
       const payload = tokenService.verifyAccessToken(token);
 
       req.userId = payload.userId;
+      req.userRole = payload.role;
 
       next();
     } catch (error) {

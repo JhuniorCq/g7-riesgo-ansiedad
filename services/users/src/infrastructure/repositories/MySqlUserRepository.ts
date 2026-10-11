@@ -1,5 +1,5 @@
 import { ResultSetHeader, RowDataPacket } from "mysql2";
-import { User } from "../../domain/entities/User.js";
+import { User, UserRole } from "../../domain/entities/User.js";
 import { UserRepository } from "../../domain/repositories/UserRepository.js";
 import { pool } from "../../config/database.js";
 
@@ -12,6 +12,7 @@ interface UserRow extends RowDataPacket {
   password: string;
   school: string;
   cycle: number;
+  role: UserRole;
   created_at: Date;
 }
 
@@ -27,9 +28,10 @@ export class MySqlUserRepository implements UserRepository {
           password,
           school,
           cycle,
+          role,
           created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         user.getNames(),
@@ -39,6 +41,7 @@ export class MySqlUserRepository implements UserRepository {
         user.getPassword(),
         user.getSchool(),
         user.getCycle(),
+        user.getRole(),
         user.getCreatedAt(),
       ],
     );
@@ -60,6 +63,7 @@ export class MySqlUserRepository implements UserRepository {
           password,
           school,
           cycle,
+          role,
           created_at
         FROM users
         WHERE id = ?
@@ -86,6 +90,7 @@ export class MySqlUserRepository implements UserRepository {
           password,
           school,
           cycle,
+          role,
           created_at
         FROM users
         WHERE email = ?
@@ -112,6 +117,7 @@ export class MySqlUserRepository implements UserRepository {
           password,
           school,
           cycle,
+          role,
           created_at
         FROM users
         WHERE code = ?
@@ -138,6 +144,7 @@ export class MySqlUserRepository implements UserRepository {
           password,
           school,
           cycle,
+          role,
           created_at
         FROM
         users
@@ -158,6 +165,7 @@ export class MySqlUserRepository implements UserRepository {
       password: row.password,
       school: row.school,
       cycle: row.cycle,
+      role: row.role,
       createdAt: row.created_at,
     });
   }

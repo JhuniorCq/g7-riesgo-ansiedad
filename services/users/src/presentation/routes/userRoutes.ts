@@ -1,5 +1,6 @@
 import { RequestHandler, Router } from "express";
 import { UserController } from "../controllers/UserController.js";
+import { createRoleMiddleware } from "../middlewares/roleMiddleware.js";
 
 export const createUserRouter = (
   userController: UserController,
@@ -14,11 +15,17 @@ export const createUserRouter = (
   router.get("/me", authMiddleware, (req, res) =>
     userController.getMe(req, res),
   );
-  router.get("/", authMiddleware, (req, res) =>
-    userController.getAll(req, res),
+  router.get(
+    "/",
+    authMiddleware,
+    createRoleMiddleware("PERSONAL_UNAYOE", "ADMINISTRADOR"),
+    (req, res) => userController.getAll(req, res),
   );
-  router.get("/:id", authMiddleware, (req, res) =>
-    userController.getById(req, res),
+  router.get(
+    "/:id",
+    authMiddleware,
+    createRoleMiddleware("PERSONAL_UNAYOE", "ADMINISTRADOR"),
+    (req, res) => userController.getById(req, res),
   );
 
   return router;
