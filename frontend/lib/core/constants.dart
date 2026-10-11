@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'api_gateway_config.dart';
 
 /// Configuración global de la aplicación.
 ///
@@ -8,6 +9,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Reemplaza la antigua clase `ApiConfig` siguiendo el principio
 /// de que la capa core no debe depender de detalles de implementación.
 class AppConstants {
+  static const gateway = ApiGatewayConfig(
+    baseUrl: String.fromEnvironment('APIM_BASE_URL'),
+    subscriptionKey: String.fromEnvironment('APIM_SUBSCRIPTION_KEY'),
+  );
   // ==========================================
   // CONSTANTES
   // ==========================================
@@ -98,6 +103,7 @@ class AppConstants {
     'USERS_BASE_URL',
   );
   static String get login {
+    if (gateway.enabled) return gateway.login;
     final base = _usersLoginBaseUrl.isEmpty ? _baseUrl : _usersLoginBaseUrl;
     return '${base.replaceAll(RegExp(r'/+$'), '')}/users/login';
   }
@@ -112,7 +118,8 @@ class AppConstants {
   /// Registro de usuarios en el microservicio Users (POST /users).
   /// La URL base nunca termina en barra (ver [setBaseUrl]), por lo que
   /// el prefijo /users no se duplica.
-  static String get registroUsers => '$_baseUrl/users';
+  static String get registroUsers =>
+      gateway.enabled ? gateway.registration : '$usersOrigin/users';
 
   // ==========================================
   // ENDPOINTS DE EVALUACIONES (microservicio RiskEvaluation)
@@ -160,6 +167,7 @@ class AppConstants {
   /// que sin configuracion explicita se lanza un error en lugar de construir
   /// una URL incorrecta reutilizando el host de Users.
   static String get riskEvaluationOrigin {
+    if (gateway.enabled) return '${gateway.origin}/re';
     final configurada = _riskEvaluationBaseUrl.replaceAll(RegExp(r'/+$'), '');
     if (configurada.isNotEmpty) return configurada;
     final detectada = _detectarRiskEvaluationHost();
@@ -173,7 +181,9 @@ class AppConstants {
   }
 
   /// Envia la evaluacion a RiskEvaluation: JSON camelCase con JWT.
-  static String get evaluar => '$riskEvaluationOrigin/risk-evaluations/';
+  static String get evaluar => gateway.enabled
+      ? gateway.evaluation
+      : '$riskEvaluationOrigin/risk-evaluations/';
   static String get historialEvaluaciones =>
       '$_baseUrl/api/v1/evaluaciones/historial';
 

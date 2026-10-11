@@ -1,12 +1,17 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../../../core/constants.dart';
+import '../../../../core/api_gateway_config.dart';
 
 /// Servicio genérico para realizar llamadas HTTP al backend.
 ///
 /// Esta clase reside en la capa de datos porque es un detalle
 /// de implementación de la comunicación con la API.
 class ApiService {
+  final ApiGatewayConfig _gateway;
+  ApiService({ApiGatewayConfig? gateway})
+    : _gateway = gateway ?? AppConstants.gateway;
   Future<void> Function()? onUnauthorized;
   int _sessionVersion = 0;
 
@@ -28,13 +33,7 @@ class ApiService {
   /// Candidate session verification never changes the shared active token.
   Future<Map<String, dynamic>> getWithToken(String url, String token) async {
     final response = await http
-        .get(
-          Uri.parse(url),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-        )
+        .get(Uri.parse(url), headers: _headers(url, candidateToken: token))
         .timeout(const Duration(seconds: 15));
     return _procesarRespuesta(response);
   }
@@ -48,10 +47,18 @@ class ApiService {
   }
 
   /// Construye los headers con autenticación si hay token
-  Map<String, String> _headers({bool withAuth = true}) {
-    final headers = <String, String>{'Content-Type': 'application/json'};
-    if (withAuth && _token != null) {
-      headers['Authorization'] = 'Bearer $_token';
+  Map<String, String> _headers(
+    String url, {
+    bool withAuth = true,
+    String? candidateToken,
+  }) {
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      ..._gateway.headersFor(url),
+    };
+    final token = candidateToken ?? _token;
+    if (withAuth && token != null) {
+      headers['Authorization'] = 'Bearer $token';
     }
     return headers;
   }
@@ -60,7 +67,7 @@ class ApiService {
   Future<Map<String, dynamic>> get(String url) async {
     final session = (_token, _sessionVersion);
     final response = await http
-        .get(Uri.parse(url), headers: _headers())
+        .get(Uri.parse(url), headers: _headers(url))
         .timeout(const Duration(seconds: 15));
     await _checkUnauthorized(response, session);
     return _procesarRespuesta(response);
@@ -70,7 +77,7 @@ class ApiService {
   Future<List<dynamic>> getList(String url) async {
     final session = (_token, _sessionVersion);
     final response = await http
-        .get(Uri.parse(url), headers: _headers())
+        .get(Uri.parse(url), headers: _headers(url))
         .timeout(const Duration(seconds: 15));
     await _checkUnauthorized(response, session);
     if (response.statusCode == 200) {
@@ -93,7 +100,7 @@ class ApiService {
     final response = await http
         .post(
           Uri.parse(url),
-          headers: _headers(withAuth: withAuth),
+          headers: _headers(url, withAuth: withAuth),
           body: body != null ? jsonEncode(body) : null,
         )
         .timeout(const Duration(seconds: 15));
@@ -116,7 +123,7 @@ class ApiService {
     final response = await http
         .put(
           Uri.parse(url),
-          headers: _headers(),
+          headers: _headers(url),
           body: body != null ? jsonEncode(body) : null,
         )
         .timeout(const Duration(seconds: 15));
@@ -128,7 +135,7 @@ class ApiService {
   Future<Map<String, dynamic>> delete(String url) async {
     final session = (_token, _sessionVersion);
     final response = await http
-        .delete(Uri.parse(url), headers: _headers())
+        .delete(Uri.parse(url), headers: _headers(url))
         .timeout(const Duration(seconds: 15));
     await _checkUnauthorized(response, session);
     return _procesarRespuesta(response);
