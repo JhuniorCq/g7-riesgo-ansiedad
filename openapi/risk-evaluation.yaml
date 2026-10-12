@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: API del microservicio de evaluación de riesgo de ansiedad.
 servers:
-  - url: https://g7-riesgo-ansiedad-risk-evaluations-d0bthtemgcaqhzh8.chilecentral-01.azurewebsites.net
+  - url: https://g7-riesgo-ansiedad-risk-evaluations.onrender.com
     description: Servicio de evaluación de riesgo desplegado en Azure
 tags:
   - name: Risk Evaluations

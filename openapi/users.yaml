@@ -4,8 +4,8 @@ info:
   version: 1.0.0
   description: API del microservicio de usuarios.
 servers:
-  - url: https://g7-riesgo-ansiedad-users-gzamfsdbdxh8adh4.chilecentral-01.azurewebsites.net
-    description: Servicio de usuarios desplegado en Azure
+  - url: https://g7-riesgo-ansiedad-users.onrender.com
+    description: Servicio de usuarios desplegado en Render
 tags:
   - name: Users
     description: Operaciones de usuarios
