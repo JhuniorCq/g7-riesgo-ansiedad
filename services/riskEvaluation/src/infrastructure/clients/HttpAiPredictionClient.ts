@@ -36,7 +36,7 @@ export class HttpAiPredictionClient implements AiPredictionClient {
     AI_PREDICTION_URL ?? "http://localhost:3003";
 
   async predict(input: AiPredictionInput): Promise<AiPredictionResult> {
-    const response = await fetch(this.predictionUrl, {
+    const response = await fetch(`${this.predictionUrl}/predict`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

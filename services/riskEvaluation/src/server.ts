@@ -16,8 +16,8 @@ const app = express();
 
 app.use(express.json());
 
-// const aiPredictionClient = new HttpAiPredictionClient();
-const aiPredictionClient = new FakeAiPredictionClient();
+const aiPredictionClient = new HttpAiPredictionClient();
+// const aiPredictionClient = new FakeAiPredictionClient();
 const riskEvaluationRepository = new MySqlRiskEvaluationRepository();
 const riskRecommendationRepository = new MySqlRiskRecommendationRepository();
 const tokenService = new JwtTokenService();
