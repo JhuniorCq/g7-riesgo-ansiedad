@@ -33,6 +33,7 @@ class UsuarioModel {
         escuela: texto('school'),
         ciclo: ciclo,
         createdAt: fecha,
+        role: json['role'] is String ? json['role'] as String : null,
       ),
     );
   }
@@ -48,5 +49,6 @@ class UsuarioModel {
     'school': _usuario.escuela,
     'cycle': _usuario.ciclo,
     'createdAt': _usuario.createdAt,
+    'role': _usuario.role,
   };
 }

@@ -33,7 +33,8 @@ class AuthRepositoryImpl implements AuthRepository {
     final session = await _storage(_store.read);
     if (generation != _generation) return null;
     if (session == null) return null;
-    if (session.usersOrigin != origin) {
+    if (session.usersOrigin != origin || session.role != 'ESTUDIANTE') {
+      _remoteDataSource.setSessionToken(null);
       await _storage(_store.delete);
       return null;
     }
@@ -43,6 +44,11 @@ class AuthRepositoryImpl implements AuthRepository {
         url: '$origin/users/me',
       );
       if (generation != _generation) return null;
+      if (!usuario.toEntity().isStudent) {
+        _remoteDataSource.setSessionToken(null);
+        await _storage(_store.delete);
+        return null;
+      }
       _remoteDataSource.setSessionToken(session.token);
       return (token: session.token, usuario: usuario.toEntity());
     } on ApiException catch (e) {
@@ -70,8 +76,16 @@ class AuthRepositoryImpl implements AuthRepository {
       url: '$origin/users/login',
     );
     if (generation != _generation) throw Exception('Operación cancelada.');
+    if (!result.usuario.toEntity().isStudent) {
+      _remoteDataSource.setSessionToken(null);
+      throw Exception(Usuario.studentAccessMessage);
+    }
     try {
-      await _storage(() => _store.write(StoredSession(result.token, origin)));
+      await _storage(
+        () => _store.write(
+          StoredSession(result.token, origin, result.usuario.toEntity().role),
+        ),
+      );
     } catch (_) {
       _remoteDataSource.setSessionToken(null);
       try {

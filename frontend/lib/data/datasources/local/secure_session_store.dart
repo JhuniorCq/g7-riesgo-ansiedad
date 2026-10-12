@@ -19,13 +19,21 @@ class SecureSessionStore implements SessionStore {
         data['origin'] is! String) {
       throw const FormatException('Sesión almacenada inválida');
     }
-    return StoredSession(data['token'], data['origin']);
+    return StoredSession(
+      data['token'],
+      data['origin'],
+      data['role'] is String ? data['role'] as String : null,
+    );
   }
 
   @override
   Future<void> write(StoredSession session) => _storage.write(
     key: _key,
-    value: jsonEncode({'token': session.token, 'origin': session.usersOrigin}),
+    value: jsonEncode({
+      'token': session.token,
+      'origin': session.usersOrigin,
+      'role': session.role,
+    }),
   );
 
   @override

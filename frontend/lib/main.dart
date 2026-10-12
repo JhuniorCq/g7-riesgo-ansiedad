@@ -41,8 +41,6 @@ import 'presentation/viewmodels/escuela_viewmodel.dart';
 import 'presentation/pages/onboarding/onboarding_screen.dart';
 import 'presentation/pages/auth/login_screen.dart';
 import 'presentation/pages/home/home_screen.dart';
-import 'presentation/pages/admin/admin_home_screen.dart';
-import 'presentation/pages/medico/medico_home_screen.dart';
 import 'presentation/pages/evaluacion/evaluacion_screen.dart';
 import 'presentation/pages/evaluacion/resultado_screen.dart';
 import 'presentation/pages/evaluacion/historial_screen.dart';
@@ -187,10 +185,8 @@ class _AnsiedadAppState extends State<AnsiedadApp> {
             '/onboarding': (context) => const OnboardingScreen(),
             '/login': (context) => const LoginScreen(),
             '/home': (context) => const SessionProtected(child: HomeScreen()),
-            '/admin-home': (context) =>
-                const SessionProtected(child: AdminHomeScreen()),
-            '/medico-home': (context) =>
-                const SessionProtected(child: MedicoHomeScreen()),
+            '/admin-home': (context) => const SessionGate(),
+            '/medico-home': (context) => const SessionGate(),
             '/evaluacion': (context) =>
                 const SessionProtected(child: EvaluacionScreen()),
             '/resultado': (context) =>

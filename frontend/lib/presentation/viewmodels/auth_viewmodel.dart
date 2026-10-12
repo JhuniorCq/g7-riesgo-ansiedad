@@ -79,7 +79,7 @@ class AuthViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   String? get token => _token;
-  bool get isAuthenticated => _isAuthenticated;
+  bool get isAuthenticated => _isAuthenticated && _usuario?.isStudent == true;
   Usuario? get usuario => _usuario;
   String? get nombre => _usuario?.nombre;
   String? get correo => _usuario?.correo;

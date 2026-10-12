@@ -1,4 +1,4 @@
-/// Usuario público de Users, sin roles ni credenciales.
+/// Usuario público de Users, sin credenciales.
 class Usuario {
   final int idUsuario;
   final String nombres;
@@ -8,6 +8,10 @@ class Usuario {
   final String escuela;
   final int ciclo;
   final String createdAt;
+  final String? role;
+  bool get isStudent => role == 'ESTUDIANTE';
+  static const studentAccessMessage =
+      'El acceso a la aplicación móvil está restringido a estudiantes.';
 
   const Usuario({
     required this.idUsuario,
@@ -18,6 +22,7 @@ class Usuario {
     required this.escuela,
     required this.ciclo,
     required this.createdAt,
+    required this.role,
   });
 
   String get nombre => '$nombres $apellidos'.trim();

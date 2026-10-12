@@ -27,6 +27,7 @@ const user = {
   'email': 'ana@example.com',
   'school': 'Sistemas',
   'cycle': 9,
+  'role': 'ESTUDIANTE',
   'createdAt': '2026-10-11T00:00:00Z',
 };
 
@@ -86,9 +87,12 @@ AuthViewModel createVm(SessionApi api, FakeSessionStore store) {
   );
 }
 
-FakeSessionStore saved() =>
-    FakeSessionStore()
-      ..session = StoredSession('stored-test', AppConstants.usersOrigin);
+FakeSessionStore saved() => FakeSessionStore()
+  ..session = StoredSession(
+    'stored-test',
+    AppConstants.usersOrigin,
+    'ESTUDIANTE',
+  );
 
 void main() {
   test(
@@ -222,7 +226,11 @@ void main() {
   test('otro origen nunca recibe token', () async {
     final api = SessionApi();
     final store = saved()
-      ..session = const StoredSession('stored-test', 'http://other');
+      ..session = const StoredSession(
+        'stored-test',
+        'http://other',
+        'ESTUDIANTE',
+      );
     final vm = createVm(api, store);
     await vm.restaurarSesion();
     expect(api.gets, 0);

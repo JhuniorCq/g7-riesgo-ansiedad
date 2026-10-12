@@ -34,6 +34,7 @@ const _user = {
   'email': 'ana@example.com',
   'school': 'Sistemas',
   'cycle': 9,
+  'role': 'ESTUDIANTE',
   'createdAt': '2026-10-11T00:00:00Z',
 };
 

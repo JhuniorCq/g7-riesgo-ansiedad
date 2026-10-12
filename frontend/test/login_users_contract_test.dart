@@ -26,6 +26,7 @@ const _user = <String, dynamic>{
   'email': 'ana@example.com',
   'school': 'Ingeniería de Sistemas',
   'cycle': 9,
+  'role': 'ESTUDIANTE',
   'createdAt': '2026-10-10T12:00:00.000Z',
 };
 
@@ -167,7 +168,10 @@ void main() {
       expect(vm.usuario, isNull);
       expect(vm.isAuthenticated, isFalse);
       expect(vm.isLoading, isFalse);
-      expect(vm.error, contains('inesperada'));
+      expect(
+        vm.error,
+        contains(field == 'role' ? 'restringido a estudiantes' : 'inesperada'),
+      );
       vm.dispose();
     });
   }

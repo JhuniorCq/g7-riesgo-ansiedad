@@ -1,7 +1,8 @@
 class StoredSession {
   final String token;
   final String usersOrigin;
-  const StoredSession(this.token, this.usersOrigin);
+  final String? role;
+  const StoredSession(this.token, this.usersOrigin, [this.role]);
 }
 
 abstract class SessionStore {
