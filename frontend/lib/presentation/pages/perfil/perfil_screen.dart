@@ -25,7 +25,9 @@ class PerfilScreen extends StatelessWidget {
       body: Consumer<AuthViewModel>(
         builder: (context, authVM, _) {
           final usuario = authVM.usuario;
-          const rol = 'Sin rol asignado';
+          final rol = usuario?.role == 'ESTUDIANTE'
+              ? 'Estudiante'
+              : 'Sin rol asignado';
           final nombre = authVM.nombre ?? 'Usuario';
           final correo = authVM.correo ?? '';
           final escuela = usuario?.escuela;
