@@ -1,4 +1,5 @@
 import express from "express";
+import { logger } from "./config/logger.js";
 import { PORT } from "./config/config.js";
 import { HttpAiPredictionClient } from "./infrastructure/clients/HttpAiPredictionClient.js";
 import { MySqlRiskEvaluationRepository } from "./infrastructure/repositories/MySqlRiskEvaluationRepository.js";
@@ -11,9 +12,11 @@ import { createRiskEvaluationRouter } from "./presentation/routes/riskEvaluation
 import { errorHandler } from "./presentation/middlewares/errorHandler.js";
 import { FakeAiPredictionClient } from "./infrastructure/clients/FakeAiPredictionClient.js";
 import { pool } from "./config/database.js";
+import { httpLoggingMiddleware } from "./presentation/middlewares/httpLogginMiddleware.js";
 
 const app = express();
 
+app.use(httpLoggingMiddleware);
 app.use(express.json());
 
 const aiPredictionClient = new HttpAiPredictionClient();
@@ -53,6 +56,8 @@ app.get("/health", async (_req, res) => {
   } catch (error) {
     console.error("ERROR MYSQL:", error);
 
+    logger.error({ err: error }, "Error consultando MySQL en /health");
+
     res.status(503).json({
       service: "riskEvaluation",
       status: "ERROR",
@@ -65,4 +70,6 @@ app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Risk Evaluation Service corriendo en el puerto ${PORT}`);
+
+  logger.info({ port: PORT }, "Risk Evaluation Service iniciado");
 });
