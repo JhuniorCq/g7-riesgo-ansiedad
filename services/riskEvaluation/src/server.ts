@@ -66,6 +66,13 @@ app.get("/health", async (_req, res) => {
   }
 });
 
+app.get("/test-error-500", (_req, res) => {
+  res.status(500).json({
+    success: false,
+    message: "Error 500 de prueba para verificar las métricas",
+  });
+});
+
 app.use(errorHandler);
 
 app.listen(PORT, () => {
