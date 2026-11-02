@@ -207,6 +207,72 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MessageError"
+    patch:
+      tags:
+        - Users
+      summary: Actualizar parcialmente un usuario
+      operationId: updateUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID entero positivo del usuario
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+            example:
+              names: Jhon
+      responses:
+        "200":
+          description: Usuario actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: ID o datos enviados no válidos, o no se envió ningún campo modificable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+        "401":
+          description: Falta un token válido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageError"
+        "403":
+          description: El rol no tiene permiso para actualizar usuarios
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageError"
+        "404":
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageError"
+        "409":
+          description: El código de estudiante ya está registrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageError"
+        "500":
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageError"
   /health:
     get:
       tags:
@@ -299,6 +365,33 @@ components:
           format: password
           writeOnly: true
           description: Contraseña del usuario
+    UpdateUserRequest:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: Solo se aceptan campos modificables; ID, correo, contraseña, rol y fecha de creación no se pueden cambiar.
+      properties:
+        names:
+          type: string
+          minLength: 1
+          description: Nombres del usuario
+        surnames:
+          type: string
+          minLength: 1
+          description: Apellidos del usuario
+        code:
+          type: string
+          minLength: 1
+          description: Código de estudiante único
+        school:
+          type: string
+          minLength: 1
+          description: Escuela del usuario
+        cycle:
+          type: integer
+          minimum: 1
+          maximum: 12
+          description: Ciclo académico del usuario
     LoginUserResponse:
       type: object
       required:

@@ -1,6 +1,9 @@
 import { ResultSetHeader, RowDataPacket } from "mysql2";
 import { User, UserRole } from "../../domain/entities/User.js";
-import { UserRepository } from "../../domain/repositories/UserRepository.js";
+import {
+  UserRepository,
+  UserUpdate,
+} from "../../domain/repositories/UserRepository.js";
 import { pool } from "../../config/database.js";
 
 interface UserRow extends RowDataPacket {
@@ -17,6 +20,39 @@ interface UserRow extends RowDataPacket {
 }
 
 export class MySqlUserRepository implements UserRepository {
+  async update(id: number, input: UserUpdate): Promise<void> {
+    const columns: Partial<Record<keyof UserUpdate, string>> = {
+      names: "names",
+      surnames: "surnames",
+      code: "code",
+      school: "school",
+      cycle: "cycle",
+    };
+    const assignments: string[] = [];
+    const values: Array<string | number> = [];
+
+    for (const key of Object.keys(input) as Array<keyof UserUpdate>) {
+      const column = columns[key];
+      const value = input[key];
+
+      if (column && value !== undefined) {
+        assignments.push(`${column} = ?`);
+        values.push(value);
+      }
+    }
+
+    if (assignments.length === 0) {
+      return;
+    }
+
+    values.push(id);
+
+    await pool.execute(
+      `UPDATE users SET ${assignments.join(", ")} WHERE id = ?`,
+      values,
+    );
+  }
+
   async save(user: User): Promise<User> {
     const [result] = await pool.execute<ResultSetHeader>(
       `

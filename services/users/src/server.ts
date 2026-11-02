@@ -12,6 +12,7 @@ import { LoginUser } from "./application/useCases/LoginUser.js";
 import { GetUserById } from "./application/useCases/GetUserById.js";
 import { JwtTokenServices } from "./infrastructure/services/JwtTokenService.js";
 import { createAuthMiddleware } from "./presentation/middlewares/authMiddleware.js";
+import { UpdateUser } from "./application/useCases/UpdateUser.js";
 
 const app = express();
 
@@ -25,12 +26,14 @@ const getUsers = new GetUsers(userRepository);
 const getUserById = new GetUserById(userRepository);
 const createUser = new CreateUser(userRepository, passwordHasher);
 const loginUser = new LoginUser(userRepository, passwordHasher, tokenService);
+const updateUser = new UpdateUser(userRepository);
 
 const userController = new UserController(
   getUsers,
   getUserById,
   createUser,
   loginUser,
+  updateUser,
 );
 
 const authMiddleware = createAuthMiddleware(tokenService);

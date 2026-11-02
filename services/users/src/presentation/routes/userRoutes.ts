@@ -27,6 +27,12 @@ export const createUserRouter = (
     createRoleMiddleware("PERSONAL_UNAYOE", "ADMINISTRADOR"),
     (req, res) => userController.getById(req, res),
   );
+  router.patch(
+    "/me",
+    authMiddleware,
+    createRoleMiddleware("ESTUDIANTE", "ADMINISTRADOR"),
+    (req, res) => userController.update(req, res),
+  );
 
   return router;
 };

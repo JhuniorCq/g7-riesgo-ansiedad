@@ -7,23 +7,28 @@ import { LoginUser } from "../../application/useCases/LoginUser.js";
 import { loginUserSchema } from "../dtos/LoginUserDTO.js";
 import { userIdParamsSchema } from "../dtos/UserIdParamsDTO.js";
 import { GetUserById } from "../../application/useCases/GetUserById.js";
+import { UpdateUser } from "../../application/useCases/UpdateUser.js";
+import { updateUserSchema } from "../dtos/UpdateUserDTO.js";
 
 export class UserController {
   private readonly getUsers: GetUsers;
   private readonly getUserById: GetUserById;
   private readonly createUser: CreateUser;
   private readonly loginUser: LoginUser;
+  private readonly updateUser: UpdateUser;
 
   constructor(
     getUsers: GetUsers,
     getUserById: GetUserById,
     createUser: CreateUser,
     loginUser: LoginUser,
+    updateUser: UpdateUser,
   ) {
     this.getUsers = getUsers;
     this.getUserById = getUserById;
     this.createUser = createUser;
     this.loginUser = loginUser;
+    this.updateUser = updateUser;
   }
 
   async getAll(_req: Request, res: Response): Promise<void> {
@@ -62,6 +67,23 @@ export class UserController {
     const user = await this.createUser.execute(input);
 
     res.status(201).json(toUserResponseDTO(user));
+  }
+
+  async update(req: Request, res: Response): Promise<void> {
+    const userId = req.userId;
+
+    if (!userId) {
+      res.status(401).json({
+        message: "Usuario no autenticado",
+      });
+
+      return;
+    }
+
+    const input = updateUserSchema.parse(req.body);
+    const user = await this.updateUser.execute(userId, input);
+
+    res.status(200).json(toUserResponseDTO(user));
   }
 
   async login(req: Request, res: Response): Promise<void> {
