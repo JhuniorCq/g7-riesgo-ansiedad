@@ -15,5 +15,12 @@ export const createCheckInRouter = (
     (req, res) => checkInController.register(req, res),
   );
 
+  router.get(
+    "/me",
+    authMiddleware,
+    createRoleMiddleware("ESTUDIANTE"),
+    (req, res) => checkInController.getMyHistory(req, res),
+  );
+
   return router;
 };

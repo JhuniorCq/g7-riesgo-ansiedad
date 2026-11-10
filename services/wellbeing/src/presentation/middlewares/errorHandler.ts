@@ -1,5 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
+import { ActionNotFoundError } from "../../application/errors/ActionNotFoundError.js";
+import { GoalNotFoundError } from "../../application/errors/GoalNotFoundError.js";
+import { ActionAlreadyCompletedError } from "../../domain/errors/ActionAlreadyCompletedError.js";
+import { InvalidActionPeriodError } from "../../domain/errors/InvalidActionPeriodError.js";
+import { InvalidCompletionDateError } from "../../domain/errors/InvalidCompletionDateError.js";
 
 export const errorHandler = (
   error: unknown,
@@ -15,6 +20,28 @@ export const errorHandler = (
         message: issue.message,
       })),
     });
+    return;
+  }
+
+  if (
+    error instanceof GoalNotFoundError ||
+    error instanceof ActionNotFoundError
+  ) {
+    res.status(404).json({ message: error.message });
+    return;
+  }
+
+  if (error instanceof ActionAlreadyCompletedError) {
+    res.status(409).json({ message: error.message });
+    return;
+  }
+
+  // Reglas de negocio del dominio (fechas fuera de rango, periodo inválido)
+  if (
+    error instanceof InvalidCompletionDateError ||
+    error instanceof InvalidActionPeriodError
+  ) {
+    res.status(422).json({ message: error.message });
     return;
   }
 
