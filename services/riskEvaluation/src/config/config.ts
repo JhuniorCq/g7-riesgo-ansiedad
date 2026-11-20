@@ -8,6 +8,7 @@ export const {
   DB_PASSWORD,
   AI_PREDICTION_URL,
   JWT_SECRET,
+  SUBSCRIPTION_KEY,
 } = process.env;
 
 export const PORT = process.env.PORT ? Number(process.env.PORT) : 3002;

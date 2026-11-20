@@ -3,7 +3,7 @@ import {
   AiPredictionInput,
   AiPredictionResult,
 } from "../../application/clients/AiPredictionClient.js";
-import { AI_PREDICTION_URL } from "../../config/config.js";
+import { AI_PREDICTION_URL, SUBSCRIPTION_KEY } from "../../config/config.js";
 import { AIReport, RiskLevel } from "../../domain/entities/RiskEvaluation.js";
 
 interface PythonAIReport {
@@ -40,6 +40,7 @@ export class HttpAiPredictionClient implements AiPredictionClient {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Ocp-Apim-Subscription-Key": SUBSCRIPTION_KEY as string,
       },
       body: JSON.stringify({
         phq9_score: input.phq9Score,
