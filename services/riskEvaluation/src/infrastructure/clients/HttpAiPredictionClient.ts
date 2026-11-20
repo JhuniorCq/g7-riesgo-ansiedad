@@ -36,32 +36,29 @@ export class HttpAiPredictionClient implements AiPredictionClient {
     AI_PREDICTION_URL ?? "http://localhost:3003";
 
   async predict(input: AiPredictionInput): Promise<AiPredictionResult> {
-    const response = await fetch(
-      `${this.predictionUrl}/risk-evaluations/predict`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          phq9_score: input.phq9Score,
-          gad7_score: input.gad7Score,
-          sleep_hours: input.sleepHours,
-          exercise_freq: input.exerciseFreq,
-          social_activity: input.socialActivity,
-          online_stress: input.onlineStress,
-          gpa: input.gpa,
-          family_support: input.familySupport,
-          screen_time: input.screenTime,
-          academic_stress: input.academicStress,
-          diet_quality: input.dietQuality,
-          self_efficacy: input.selfEfficacy,
-          peer_relationship: input.peerRelationship,
-          financial_stress: input.financialStress,
-          sleep_quality: input.sleepQuality,
-        }),
+    const response = await fetch(`${this.predictionUrl}/predict`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        phq9_score: input.phq9Score,
+        gad7_score: input.gad7Score,
+        sleep_hours: input.sleepHours,
+        exercise_freq: input.exerciseFreq,
+        social_activity: input.socialActivity,
+        online_stress: input.onlineStress,
+        gpa: input.gpa,
+        family_support: input.familySupport,
+        screen_time: input.screenTime,
+        academic_stress: input.academicStress,
+        diet_quality: input.dietQuality,
+        self_efficacy: input.selfEfficacy,
+        peer_relationship: input.peerRelationship,
+        financial_stress: input.financialStress,
+        sleep_quality: input.sleepQuality,
+      }),
+    });
 
     if (!response.ok) {
       const errorData = (await response
